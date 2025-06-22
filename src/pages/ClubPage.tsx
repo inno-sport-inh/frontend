@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, Users, Calendar, MapPin, Send, Mail, User, Star, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Send, Mail, User, Clock } from 'lucide-react';
 
 const ClubPage: React.FC = () => {
   const { clubName } = useParams<{ clubName: string }>();
@@ -172,13 +172,6 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
         <div className="p-4 sm:p-6 border-b border-secondary">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <Users className="text-brand-violet" size={20} />
-              <div>
-                <p className="text-xs sm:text-sm text-inactive">Members</p>
-                <p className="font-semibold text-contrast text-sm sm:text-base">{club.memberCount}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2 sm:space-x-3">
               <MapPin className="text-brand-violet" size={20} />
               <div>
                 <p className="text-xs sm:text-sm text-inactive">Location</p>
@@ -189,7 +182,7 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
               <Send className="text-brand-violet" size={20} />
               <div>
                 <p className="text-xs sm:text-sm text-inactive">Telegram</p>
-                <a 
+                <a
                   href={`https://t.me/${club.telegram.replace('@', '')}`}
                   className="font-semibold text-brand-violet hover:underline text-sm sm:text-base"
                   target="_blank"
@@ -249,22 +242,6 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
                     <p className="text-xs sm:text-sm text-inactive">Location</p>
                     <p className="font-medium text-contrast text-sm sm:text-base">{session.location}</p>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Achievements */}
-          <div className="innohassle-card p-4 sm:p-6">
-            <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-              <Star className="text-brand-violet" size={24} />
-              <h2 className="text-xl sm:text-2xl font-bold text-contrast">Achievements</h2>
-            </div>
-            <div className="space-y-2 sm:space-y-3">
-              {club.achievements.map((achievement: string, index: number) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
-                  <p className="text-contrast text-sm sm:text-base">{achievement}</p>
                 </div>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MapPin, Clock, Send, Mail, Star, Trophy } from 'lucide-react';
+import { MapPin, Clock, Send, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ClubsPage: React.FC = () => {
@@ -100,38 +100,6 @@ const ClubsPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Featured Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 px-4">
-        <div className="innohassle-card p-4 sm:p-6 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-violet/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-            <Users className="text-brand-violet" size={20} />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-contrast mb-1">200+</h3>
-          <p className="text-xs sm:text-sm text-inactive">Active Members</p>
-        </div>
-        <div className="innohassle-card p-4 sm:p-6 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-violet/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-            <Trophy className="text-brand-violet" size={20} />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-contrast mb-1">15+</h3>
-          <p className="text-xs sm:text-sm text-inactive">Championships</p>
-        </div>
-        <div className="innohassle-card p-4 sm:p-6 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-violet/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-            <MapPin className="text-brand-violet" size={20} />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-contrast mb-1">8</h3>
-          <p className="text-xs sm:text-sm text-inactive">Sport Facilities</p>
-        </div>
-        <div className="innohassle-card p-4 sm:p-6 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-violet/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-            <Clock className="text-brand-violet" size={20} />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-contrast mb-1">40+</h3>
-          <p className="text-xs sm:text-sm text-inactive">Hours/Week</p>
-        </div>
-      </div>
-
       {/* Clubs Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 px-4">
         {clubs.map((club) => (
@@ -141,11 +109,6 @@ const ClubsPage: React.FC = () => {
               <div className="absolute inset-0 bg-black/20" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-6xl filter drop-shadow-lg">{club.emoji}</span>
-              </div>
-              <div className="absolute top-4 right-4">
-                <div className="innohassle-badge-success text-xs">
-                  {club.memberCount} members
-                </div>
               </div>
             </div>
 
@@ -185,22 +148,6 @@ const ClubsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Achievements */}
-              <div className="mb-4 sm:mb-6">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Star size={14} className="text-brand-violet" />
-                  <span className="text-xs sm:text-sm font-medium text-contrast">Recent Achievements</span>
-                </div>
-                <div className="space-y-1">
-                  {club.achievements.slice(0, 2).map((achievement, index) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <div className="w-1 h-1 bg-brand-violet rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
-                      <span className="text-xs text-inactive leading-relaxed">{achievement}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <a
@@ -232,16 +179,9 @@ const ClubsPage: React.FC = () => {
           Contact us to start a new club or suggest activities you'd like to see.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-          <a
-            href="mailto:sports@innopolis.university?subject=New Sport Club Proposal"
-            className="innohassle-button-primary px-4 sm:px-6 py-3 flex items-center justify-center space-x-2 text-sm sm:text-base"
-          >
-            <Mail size={18} />
-            <span>Propose New Club</span>
-          </a>
           <Link
             to="/schedule"
-            className="innohassle-button-secondary px-4 sm:px-6 py-3 text-sm sm:text-base"
+            className="innohassle-button-primary px-4 sm:px-6 py-3 text-sm sm:text-base"
           >
             View Training Schedule
           </Link>
