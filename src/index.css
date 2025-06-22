@@ -216,9 +216,16 @@
   .innohassle-badge-primary {
     color: white;
     border: 1px solid rgba(var(--color-brand-violet), 0.3);
-    background: linear-gradient(90deg, rgba(var(--color-brand-gradient-start), 0.2) 0%, rgba(var(--color-brand-violet), 0.2) 100%);
+    background: linear-gradient(90deg, rgba(var(--color-brand-gradient-start), 0.8) 0%, rgba(var(--color-brand-violet), 0.8) 100%);
     border-radius: 0.5rem;
     padding: 0.25rem 0.5rem;
+  }
+  
+  /* Light theme specific adjustments for better visibility */
+  :root .innohassle-badge-primary {
+    color: white;
+    background: linear-gradient(90deg, rgb(var(--color-brand-gradient-start)) 0%, rgb(var(--color-brand-violet)) 100%);
+    border: 1px solid rgba(var(--color-brand-violet), 0.2);
   }
 
   /* Past activity specific styles */
@@ -259,5 +266,42 @@
     border-color: #991b1b;
     border-radius: 0.5rem;
     padding: 0.25rem 0.5rem;
+  }
+
+  /* Light theme specific improvements for better visibility */
+  :root .innohassle-button-secondary {
+    background-color: rgb(var(--color-secondary));
+    color: rgb(var(--color-contrast));
+    border: 1px solid rgb(var(--color-secondary));
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  :root .innohassle-button-secondary:hover {
+    background-color: rgb(var(--color-secondary-hover));
+    border-color: rgb(var(--color-secondary-hover));
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Light theme card improvements */
+  :root .innohassle-card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Dark theme overrides */
+  :root[class~="dark"] .innohassle-button-secondary {
+    background-color: rgb(var(--color-secondary));
+    color: rgb(var(--color-contrast));
+    border: 1px solid rgb(var(--color-primary));
+    box-shadow: none;
+  }
+  
+  :root[class~="dark"] .innohassle-button-secondary:hover {
+    background-color: rgb(var(--color-secondary-hover));
+    border-color: rgb(var(--color-primary));
+    box-shadow: none;
+  }
+  
+  :root[class~="dark"] .innohassle-card {
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
   }
 }

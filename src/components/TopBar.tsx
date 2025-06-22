@@ -89,13 +89,13 @@ const TopBar: React.FC = () => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary hover:bg-secondary-hover transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary hover:bg-secondary-hover transition-colors border border-secondary-hover"
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? (
                 <Sun size={16} className="text-warning-500" />
               ) : (
-                <Moon size={16} className="text-blue-500" />
+                <Moon size={16} className="text-brand-violet" />
               )}
             </button>
 
@@ -128,17 +128,18 @@ const TopBar: React.FC = () => {
         </div>
 
         {/* Mobile Navigation */}
-        <nav className="md:hidden border-t border-secondary pb-4 pt-2">
+        <nav className="md:hidden border-t border-secondary pb-4 pt-2 px-4">
           <div className="grid grid-cols-4 gap-1">
             <NavLink
               to="/schedule"
               className={({ isActive }) =>
                 `flex flex-col items-center space-y-1 py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    ? 'text-white'
+                    : 'text-inactive hover:text-contrast hover:bg-secondary'
                 }`
               }
+              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
             >
               <Calendar size={16} />
               <span>Schedule</span>
@@ -148,10 +149,11 @@ const TopBar: React.FC = () => {
               className={({ isActive }) =>
                 `flex flex-col items-center space-y-1 py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    ? 'text-white'
+                    : 'text-inactive hover:text-contrast hover:bg-secondary'
                 }`
               }
+              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
             >
               <BarChart3 size={16} />
               <span>History</span>
@@ -161,10 +163,11 @@ const TopBar: React.FC = () => {
               className={({ isActive }) =>
                 `flex flex-col items-center space-y-1 py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    ? 'text-white'
+                    : 'text-inactive hover:text-contrast hover:bg-secondary'
                 }`
               }
+              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
             >
               <Users size={16} />
               <span>Clubs</span>
@@ -174,10 +177,11 @@ const TopBar: React.FC = () => {
               className={({ isActive }) =>
                 `flex flex-col items-center space-y-1 py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    ? 'text-white'
+                    : 'text-inactive hover:text-contrast hover:bg-secondary'
                 }`
               }
+              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
             >
               <HelpCircle size={16} />
               <span>FAQ</span>
