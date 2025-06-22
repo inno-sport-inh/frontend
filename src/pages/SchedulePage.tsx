@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../hooks/useTheme';
-import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
 
 // Utility functions for date handling
@@ -135,7 +134,6 @@ const SchedulePage: React.FC = () => {
   const { isLoading } = useAppStore();
   const { isLight } = useTheme();
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSportInfoModal, setShowSportInfoModal] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => getWeekStart(new Date()));
@@ -210,29 +208,6 @@ const SchedulePage: React.FC = () => {
           }
         : activity
     ));
-  };
-
-
-  const confirmCancelBooking = async () => {
-    if (selectedActivity) {
-      setBookedActivities(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(selectedActivity.id);
-        return newSet;
-      });
-      
-      setWeekActivities(prev => prev.map(activity =>
-        activity.id === selectedActivity.id
-          ? { 
-              ...activity, 
-              status: 'free' as const,
-              currentParticipants: Math.max(activity.currentParticipants - 1, 0)
-            }
-          : activity
-      ));
-      setShowCancelModal(false);
-      setSelectedActivity(null);
-    }
   };
 
   const handleSportClick = (sportName: string) => {
