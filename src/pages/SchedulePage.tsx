@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useTheme } from '../hooks/useTheme';
 import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
 
@@ -132,6 +133,7 @@ const generateWeekActivities = (weekStart: Date): Activity[] => {
 
 const SchedulePage: React.FC = () => {
   const { isLoading } = useAppStore();
+  const { isLight } = useTheme();
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSportInfoModal, setShowSportInfoModal] = useState(false);
@@ -509,11 +511,7 @@ const SchedulePage: React.FC = () => {
                                         e.stopPropagation();
                                         canBook && handleBookActivity(activity.id);
                                       }}
-                                      className={`innohassle-button px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${
-                                        canBook
-                                          ? 'innohassle-button-primary'
-                                          : 'bg-secondary text-inactive cursor-not-allowed'
-                                      }`}
+                                      className="innohassle-button innohassle-button-primary px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors h-9"
                                       style={{ borderRadius: '0.75rem' }}
                                       disabled={!canBook || isLoading}
                                     >
@@ -545,7 +543,7 @@ const SchedulePage: React.FC = () => {
                                             : act
                                         ));
                                       }}
-                                      className="innohassle-button-error px-3 sm:px-4 py-2 text-xs sm:text-sm"
+                                      className="innohassle-button innohassle-button-error px-3 sm:px-4 py-2 text-xs sm:text-sm"
                                       disabled={isLoading}
                                     >
                                       Cancel
@@ -727,7 +725,7 @@ const SchedulePage: React.FC = () => {
                       className={`flex-1 py-3 transition-colors ${
                         bookedActivities.size >= 2 || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen
                           ? 'bg-secondary text-inactive cursor-not-allowed'
-                          : 'innohassle-button-primary'
+                          : isLight ? 'innohassle-button-outline' : 'innohassle-button-primary'
                       }`}
                       disabled={bookedActivities.size >= 2 || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || isLoading}
                     >

@@ -113,6 +113,12 @@
   .innohassle-button-primary:hover {
     background: linear-gradient(90deg, rgba(var(--color-brand-gradient-start), 0.9) 0%, rgba(var(--color-brand-violet), 0.9) 100%);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px 0 rgba(var(--color-brand-violet), 0.3);
+  }
+  
+  .innohassle-button-primary:focus {
+    box-shadow: none;
+    outline: none;
   }
   
   .innohassle-button-secondary {
@@ -159,6 +165,11 @@
   .innohassle-button-error:hover {
     background-color: #b91c1c;
     transform: translateY(-1px);
+  }
+  
+  .innohassle-button-error:focus {
+    box-shadow: none;
+    outline: none;
   }
   
   .innohassle-input {
@@ -282,6 +293,19 @@
     box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
   }
   
+  /* Light theme primary button - filled by default, outline on hover */
+  :root .innohassle-button-primary {
+    border: 2px solid transparent;
+  }
+  
+  :root .innohassle-button-primary:hover {
+    background: rgb(var(--color-pagebg));
+    color: rgb(var(--color-brand-violet));
+    border: 2px solid rgb(var(--color-brand-violet));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px 0 rgba(var(--color-brand-violet), 0.3);
+  }
+  
   /* Light theme card improvements */
   :root .innohassle-card {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -298,6 +322,32 @@
   :root[class~="dark"] .innohassle-button-secondary:hover {
     background-color: rgb(var(--color-secondary-hover));
     border-color: rgb(var(--color-primary));
+    box-shadow: none;
+  }
+  
+  :root[class~="dark"] .innohassle-button-primary {
+    border: 2px solid transparent;
+  }
+  
+  :root[class~="dark"] .innohassle-button-primary:hover {
+    background: rgb(var(--color-pagebg));
+    color: rgb(var(--color-brand-violet));
+    border: 2px solid rgb(var(--color-brand-violet));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px 0 rgba(var(--color-brand-violet), 0.3);
+  }
+  
+  :root[class~="dark"] .innohassle-button-outline {
+    background-color: transparent;
+    color: rgb(var(--color-brand-violet));
+    border: 2px solid rgb(var(--color-brand-violet));
+  }
+  
+  :root[class~="dark"] .innohassle-button-outline:hover {
+    background-color: rgb(var(--color-brand-violet));
+    color: white;
+    border: 2px solid rgb(var(--color-brand-violet));
+    transform: translateY(-1px);
     box-shadow: none;
   }
   
