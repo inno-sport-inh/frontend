@@ -2,7 +2,7 @@ export interface Activity {
   id: number;
   time: string;
   activity: string;
-  status: 'free' | 'booked';
+  status: "free" | "booked";
   date?: string;
   currentParticipants?: number;
   maxParticipants?: number;

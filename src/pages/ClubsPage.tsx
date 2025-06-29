@@ -1,100 +1,12 @@
 import React from "react";
 import { MapPin, Clock, Send, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import { clubs } from "../data/mockData";
 /*
   ClubsPage component renders a list of sports clubs in a responsive grid.
   Each club card uses semantic HTML tags and ARIA attributes for better accessibility.
 */
 const ClubsPage: React.FC = () => {
-  // Array of club data. In a real application, this would come from an API or context.
-  const clubs = [
-    {
-      id: 1,
-      name: "Table Tennis Club",
-      slug: "table-tennis",
-      emoji: "🏓",
-      description: "Master the art of table tennis with our passionate community of players. From beginners to advanced competitors, everyone is welcome!",
-      memberCount: 45,
-      location: "Sports Complex - Hall A",
-      schedule: "Mon, Wed, Fri",
-      telegram: "@tabletennis_inno",
-      leader: "Anna Mingaleva",
-      achievements: ["Inter-University Championship 2023 - 2nd Place", "Regional Tournament 2023 - 3rd Place"],
-      gradient: "from-red-500 to-pink-600",
-    },
-    {
-      id: 2,
-      name: "Basketball Club",
-      slug: "basketball",
-      emoji: "🏀",
-      description: "Join our dynamic basketball team and experience the thrill of teamwork, strategy, and athletic excellence on the court.",
-      memberCount: 32,
-      location: "Sports Complex - Main Court",
-      schedule: "Tue, Thu, Sat",
-      telegram: "@basketball_inno",
-      leader: "Michael Johnson",
-      achievements: ["University League Champions 2023", "Regional Championship Participants 2023"],
-      gradient: "from-orange-500 to-red-600",
-    },
-    {
-      id: 3,
-      name: "Swimming Club",
-      slug: "swimming",
-      emoji: "🏊‍♂️",
-      description: "Dive into our swimming community and improve your technique while building endurance and strength in the water.",
-      memberCount: 28,
-      location: "Aquatic Center - Pool",
-      schedule: "Mon, Wed, Fri",
-      telegram: "@swimming_inno",
-      leader: "Elena Volkova",
-      achievements: ["Regional Swimming Championship 2023 - Multiple medals", "University Aquatic Meet 2023 - 1st Place"],
-      gradient: "from-blue-500 to-cyan-600",
-    },
-    {
-      id: 4,
-      name: "Volleyball Club",
-      slug: "volleyball",
-      emoji: "🏐",
-      description: "Spike your way to success with our volleyball team. Build teamwork skills while having fun and staying fit.",
-      memberCount: 24,
-      location: "Sports Complex - Hall B",
-      schedule: "Tue, Thu, Sun",
-      telegram: "@volleyball_inno",
-      leader: "Sofia Martinez",
-      achievements: ["Regional Volleyball League 2023 - 3rd Place"],
-      gradient: "from-yellow-500 to-orange-600",
-    },
-    {
-      id: 5,
-      name: "Tennis Club",
-      slug: "tennis",
-      emoji: "🎾",
-      description: "Perfect your serve and master the court with our tennis club. Individual and doubles play available for all skill levels.",
-      memberCount: 20,
-      location: "Tennis Courts - Outdoor",
-      schedule: "Wed, Fri, Sat",
-      telegram: "@tennis_inno",
-      leader: "David Kim",
-      achievements: ["University Tennis Tournament 2023 - Finalists"],
-      gradient: "from-green-500 to-emerald-600",
-    },
-    {
-      id: 6,
-      name: "Football Club",
-      slug: "football",
-      emoji: "⚽",
-      description: "Score goals and build friendships with our football club. The beautiful game awaits players of all abilities.",
-      memberCount: 35,
-      location: "Outdoor Football Field",
-      schedule: "Tue, Thu, Sat",
-      telegram: "@football_inno",
-      leader: "Carlos Rodriguez",
-      achievements: ["Inter-University Football Cup 2023 - Semi-finalists"],
-      gradient: "from-green-600 to-blue-600",
-    },
-  ];
-
   return (
     <main className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
       {/* Page header section with title and introduction */}
