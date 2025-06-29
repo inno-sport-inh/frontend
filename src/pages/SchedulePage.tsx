@@ -710,7 +710,7 @@ const SchedulePage: React.FC = () => {
                         ? 'Registration Closed'
                         : bookedActivities.size >= 2
                         ? 'Max bookings reached'
-                        : 'Book Activity'
+                        : 'Enroll'
                       }
                     </button>
                   )}
