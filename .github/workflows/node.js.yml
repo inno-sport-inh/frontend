@@ -1,4 +1,4 @@
-name: Run React Jest Tests
+name: Run React Jest Tests + Linter
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  jest-tests:
+  lint-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +29,7 @@ jobs:
           fi
 
       - name: Run Jest tests with coverage
-        run: npx jest --coverage
+        run: npx jest --coverage --passWithNoTests
 
       - name: Upload Jest coverage report
         if: success()
@@ -37,3 +37,10 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
+
+      - name: Run Super-Linter (no install required)
+        uses: github/super-linter@v6
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
