@@ -355,3 +355,125 @@
     box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
   }
 }
+
+/* Enhanced design animations and effects */
+@keyframes shimmer {
+  0% { transform: translateX(-200%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-brand-violet), 0.7); }
+  50% { box-shadow: 0 0 0 8px rgba(var(--color-brand-violet), 0); }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Progress bar enhancements */
+.progress-container {
+  position: relative;
+}
+
+.progress-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 3s ease-in-out infinite;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.progress-indicator {
+  box-shadow: 0 0 0 3px rgb(var(--color-brand-violet));
+}
+
+/* Hover effects */
+.progress-container:hover .progress-fill::after {
+  animation: shimmer 1s ease-in-out infinite;
+}
+
+.progress-container:hover .progress-indicator {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(var(--color-brand-violet), 0.6);
+}
+
+/* Responsive progress bar */
+@media (max-width: 640px) {
+  .progress-container {
+    height: 1.25rem;
+  }
+  
+  .progress-indicator {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+/* Safe area support for iOS devices */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Mobile bottom navigation spacing */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Add bottom padding to main content to avoid overlap with bottom navbar */
+  .mobile-content-bottom-padding {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
+  }
+}
+
+/* Improved mobile navbar styling */
+.mobile-navbar {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support for mobile navbar */
+@media (prefers-color-scheme: dark) {
+  .mobile-navbar {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+}

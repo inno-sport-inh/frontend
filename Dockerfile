@@ -1,34 +1,32 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Используем официальный образ Node.js как базовый
+FROM node:18-alpine as build
 
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Copy package files
+# Копируем package.json и package-lock.json (если есть)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Устанавливаем зависимости
+RUN npm ci --only=production
 
-# Copy source code
+# Копируем все файлы проекта
 COPY . .
 
-# Set environment variables for build
-ENV VITE_API_URL=http://t9d.store/api
-
-# Build the application
+# Собираем проект
 RUN npm run build
 
-# Production stage
+# Используем nginx для обслуживания статических файлов
 FROM nginx:alpine
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Копируем собранные файлы в nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Копируем конфигурацию nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose port 80
+# Экспонируем порт 80
 EXPOSE 80
 
-# Start nginx
+# Запускаем nginx
 CMD ["nginx", "-g", "daemon off;"]

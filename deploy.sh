@@ -1,35 +1,35 @@
 #!/bin/bash
 
-# Deployment script for sport-frontend
+# Скрипт для деплоя приложения
+echo "🚀 Начинаем деплой sport-frontend..."
 
-echo "🚀 Starting deployment process..."
-
-# Build Docker image
-echo "📦 Building Docker image..."
-docker build -t sport-frontend:latest .
-
-# Stop existing container if running
-echo "🛑 Stopping existing container..."
-docker stop sport-frontend 2>/dev/null || true
-docker rm sport-frontend 2>/dev/null || true
-
-# Run new container
-echo "▶️ Starting new container..."
-docker run -d \
-  --name sport-frontend \
-  --restart unless-stopped \
-  -p 80:80 \
-  -e VITE_API_URL=http://t9d.store/api \
-  sport-frontend:latest
-
-# Check if container is running
-if docker ps | grep -q sport-frontend; then
-  echo "✅ Deployment successful! Application is running on http://localhost"
-  echo "🔗 API URL: http://t9d.store/api"
-else
-  echo "❌ Deployment failed!"
-  docker logs sport-frontend
-  exit 1
+# Проверяем, что Docker установлен
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker не установлен. Установите Docker и попробуйте снова."
+    exit 1
 fi
 
-echo "🎉 Deployment completed!"
+# Проверяем, что docker-compose установлен
+if ! command -v docker-compose &> /dev/null; then
+    echo "❌ docker-compose не установлен. Установите docker-compose и попробуйте снова."
+    exit 1
+fi
+
+# Останавливаем старые контейнеры
+echo "🛑 Останавливаем старые контейнеры..."
+docker-compose down
+
+# Удаляем старые образы
+echo "🗑️ Очищаем старые образы..."
+docker image prune -f
+
+# Собираем и запускаем новый контейнер
+echo "🔨 Собираем и запускаем новый контейнер..."
+docker-compose up -d --build
+
+# Проверяем статус
+echo "📊 Проверяем статус контейнера..."
+docker-compose ps
+
+echo "✅ Деплой завершен!"
+echo "🌐 Приложение доступно по адресу: https://profile.t9d.store"

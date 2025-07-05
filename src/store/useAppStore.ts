@@ -12,12 +12,22 @@ interface AppState {
   user: { name: string; email: string } | null;
   isAuthenticated: boolean;
   
+  // Enrollment state - shared between ClubPage and SchedulePage
+  enrolledSessions: Set<string>;
+  
   // Actions
   bookActivity: (activityId: number) => Promise<void>;
   loadActivities: () => Promise<void>;
   clearError: () => void;
   login: () => void;
   logout: () => void;
+  
+  // Enrollment actions
+  enrollInSession: (sessionId: string) => Promise<void>;
+  cancelEnrollment: (sessionId: string) => Promise<void>;
+  isEnrolled: (sessionId: string) => boolean;
+  getEnrollmentCount: () => number;
+  canEnrollInMoreSessions: () => boolean;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -27,6 +37,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   error: null,
   user: { name: 'Test User', email: 'test@innopolis.university' },
   isAuthenticated: true,
+  enrolledSessions: new Set<string>(),
 
   bookActivity: async (activityId: number) => {
     set({ isLoading: true });
@@ -49,6 +60,69 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-  login: () => set({ isAuthenticated: true }),
-  logout: () => set({ isAuthenticated: false, user: null }),
+
+  login: () => set({ 
+    isAuthenticated: true, 
+    user: { name: 'Test User', email: 'test@innopolis.university' } 
+  }),
+
+  logout: () => set({ 
+    isAuthenticated: false, 
+    user: null,
+    enrolledSessions: new Set<string>() // Clear enrollments on logout
+  }),
+
+  // Enrollment actions
+  enrollInSession: async (sessionId: string) => {
+    set({ isLoading: true });
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { enrolledSessions } = get();
+      const newEnrolledSessions = new Set(enrolledSessions);
+      newEnrolledSessions.add(sessionId);
+      
+      set({ enrolledSessions: newEnrolledSessions });
+    } catch (error) {
+      set({ error: 'Failed to enroll in session' });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  cancelEnrollment: async (sessionId: string) => {
+    set({ isLoading: true });
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { enrolledSessions } = get();
+      const newEnrolledSessions = new Set(enrolledSessions);
+      newEnrolledSessions.delete(sessionId);
+      
+      set({ enrolledSessions: newEnrolledSessions });
+    } catch (error) {
+      set({ error: 'Failed to cancel enrollment' });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  isEnrolled: (sessionId: string) => {
+    const { enrolledSessions } = get();
+    return enrolledSessions.has(sessionId);
+  },
+
+  getEnrollmentCount: () => {
+    const { enrolledSessions } = get();
+    return enrolledSessions.size;
+  },
+
+  canEnrollInMoreSessions: () => {
+    const { enrolledSessions } = get();
+    return enrolledSessions.size < 2; // Maximum 2 sessions per user
+  },
 }));

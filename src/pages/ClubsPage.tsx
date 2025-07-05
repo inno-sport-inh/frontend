@@ -103,12 +103,16 @@ const ClubsPage: React.FC = () => {
       {/* Clubs Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 px-4">
         {clubs.map((club) => (
-          <div key={club.id} className="innohassle-card overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <Link 
+            key={club.id} 
+            to={`/club/${club.slug}`}
+            className="innohassle-card overflow-hidden group hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
+          >
             {/* Club Header with Gradient */}
             <div className={`h-32 bg-gradient-to-br ${club.gradient} relative overflow-hidden`}>
               <div className="absolute inset-0 bg-black/20" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-6xl filter drop-shadow-lg">{club.emoji}</span>
+                <span className="text-6xl filter drop-shadow-lg group-hover:scale-110 transition-transform duration-300">{club.emoji}</span>
               </div>
             </div>
 
@@ -133,14 +137,7 @@ const ClubsPage: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-2 text-xs sm:text-sm">
                   <Send size={16} className="text-brand-violet" />
-                  <a 
-                    href={`https://t.me/${club.telegram.replace('@', '')}`}
-                    className="text-brand-violet hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {club.telegram}
-                  </a>
+                  <span className="text-brand-violet">{club.telegram}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-xs sm:text-sm">
                   <Mail size={16} className="text-brand-violet" />
@@ -150,24 +147,22 @@ const ClubsPage: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                <a
-                  href={`https://t.me/${club.telegram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 innohassle-button-primary py-2 text-xs sm:text-sm flex items-center justify-center space-x-2"
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(`https://t.me/${club.telegram.replace('@', '')}`, '_blank');
+                  }}
+                  className="flex-1 innohassle-button-primary py-2 text-xs sm:text-sm flex items-center justify-center space-x-2 hover:scale-105 transition-transform"
                 >
                   <Send size={16} />
                   <span>Join Club</span>
-                </a>
-                <Link
-                  to={`/club/${club.slug}`}
-                  className="innohassle-button-secondary px-4 py-2 text-xs sm:text-sm text-center"
-                >
+                </button>
+                <div className="innohassle-button-secondary px-4 py-2 text-xs sm:text-sm text-center opacity-80">
                   Learn More
-                </Link>
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

@@ -1,11 +1,38 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, HelpCircle, Search, BookOpen, Users, Clock, Calendar } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ChevronDown, ChevronUp, HelpCircle, Search, BookOpen, Users, Clock, Calendar, Filter, X, LucideIcon } from 'lucide-react';
+import { searchFAQItems } from '../utils/searchUtils';
+
+interface FAQItem {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+interface FAQItemWithSearch extends FAQItem {
+  searchScore: number;
+  searchMatches: string[];
+}
+
+interface FAQCategory {
+  id: number;
+  title: string;
+  icon: LucideIcon;
+  color: string;
+  items: FAQItem[];
+}
 
 const FAQPage: React.FC = () => {
   const [openItems, setOpenItems] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchOptions, setSearchOptions] = useState({
+    typoTolerance: true,
+    multiWordSupport: true,
+    exactMatch: false,
+    fuzzyThreshold: 0.7
+  });
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
-  const faqCategories = [
+  const faqCategories: FAQCategory[] = [
     {
       id: 1,
       title: 'General Information',
@@ -37,13 +64,13 @@ const FAQPage: React.FC = () => {
       items: [
         {
           id: 4,
-          question: 'How do I book a training session?',
-          answer: 'Go to the Schedule page, select your preferred time slot, and click "Book Session". You\'ll receive a confirmation and can add it to your calendar.'
+          question: 'How do I enroll in a training session?',
+          answer: 'Go to the Schedule page, select your preferred time slot, and click "Enroll". You\'ll receive a confirmation and can add it to your calendar.'
         },
         {
           id: 5,
-          question: 'Can I cancel a booked session?',
-          answer: 'Yes, you can cancel sessions up to 2 hours before the scheduled time. Go to your booked session and click "Cancel Booking".'
+          question: 'Can I cancel my enrollment?',
+          answer: 'Yes, you can cancel sessions up to 2 hours before the scheduled time. Go to your enrolled session and click "Cancel".'
         },
         {
           id: 6,
@@ -108,13 +135,34 @@ const FAQPage: React.FC = () => {
     );
   };
 
-  const filteredCategories = faqCategories.map(category => ({
-    ...category,
-    items: category.items.filter(item => 
-      item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.answer.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })).filter(category => category.items.length > 0);
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return faqCategories.map(category => ({
+        ...category,
+        items: category.items.map(item => ({
+          ...item,
+          searchScore: 0,
+          searchMatches: []
+        }))
+      }));
+    }
+
+    return faqCategories.map(category => {
+      const searchResults = searchFAQItems(
+        category.items,
+        searchTerm,
+        {
+          ...searchOptions,
+          minScore: 5
+        }
+      );
+
+      return {
+        ...category,
+        items: searchResults
+      };
+    }).filter(category => category.items.length > 0);
+  }, [searchTerm, searchOptions]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -125,17 +173,129 @@ const FAQPage: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="innohassle-card p-6">
+      <div className="innohassle-card p-6 space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-inactive" size={20} />
           <input
             type="text"
-            placeholder="Search FAQ..."
+            placeholder="Search FAQ... (supports multiple words and typos)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-primary border border-secondary rounded-xl text-contrast placeholder-inactive focus:outline-none focus:ring-2 focus:ring-brand-violet/50 focus:border-brand-violet"
+            className="w-full pl-10 pr-20 py-3 bg-primary border border-secondary rounded-xl text-contrast placeholder-inactive focus:outline-none focus:ring-2 focus:ring-brand-violet/50 focus:border-brand-violet"
           />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="p-1 text-inactive hover:text-contrast transition-colors"
+                title="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+            <button
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              className="p-1 text-inactive hover:text-brand-violet transition-colors"
+              title="Advanced search options"
+            >
+              <Filter size={16} />
+            </button>
+          </div>
         </div>
+
+        {/* Advanced Search Options */}
+        {showAdvancedSearch && (
+          <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-contrast">Search Options</h4>
+              <button
+                onClick={() => setShowAdvancedSearch(false)}
+                className="text-inactive hover:text-contrast transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={searchOptions.typoTolerance}
+                  onChange={(e) => setSearchOptions(prev => ({ ...prev, typoTolerance: e.target.checked }))}
+                  className="w-4 h-4 text-brand-violet bg-primary border-secondary rounded focus:ring-brand-violet/50"
+                />
+                <span className="text-sm text-contrast">Typo tolerance</span>
+              </label>
+              
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={searchOptions.multiWordSupport}
+                  onChange={(e) => setSearchOptions(prev => ({ ...prev, multiWordSupport: e.target.checked }))}
+                  className="w-4 h-4 text-brand-violet bg-primary border-secondary rounded focus:ring-brand-violet/50"
+                />
+                <span className="text-sm text-contrast">Multi-word search</span>
+              </label>
+              
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={searchOptions.exactMatch}
+                  onChange={(e) => setSearchOptions(prev => ({ ...prev, exactMatch: e.target.checked }))}
+                  className="w-4 h-4 text-brand-violet bg-primary border-secondary rounded focus:ring-brand-violet/50"
+                />
+                <span className="text-sm text-contrast">Exact match only</span>
+              </label>
+              
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-contrast">Fuzzy threshold:</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="1"
+                  step="0.1"
+                  value={searchOptions.fuzzyThreshold}
+                  onChange={(e) => setSearchOptions(prev => ({ ...prev, fuzzyThreshold: parseFloat(e.target.value) }))}
+                  className="flex-1"
+                />
+                <span className="text-xs text-inactive w-8">{searchOptions.fuzzyThreshold}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search Stats */}
+        {searchTerm && (
+          <div className="text-sm text-inactive">
+            Found {filteredCategories.reduce((total, category) => total + category.items.length, 0)} results
+            {searchOptions.typoTolerance && ' (with typo tolerance)'}
+            {searchOptions.multiWordSupport && ' (multi-word support)'}
+          </div>
+        )}
+
+        {/* Search Examples */}
+        {!searchTerm && (
+          <div className="text-sm text-inactive space-y-2">
+            <p>Try searching for:</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                'enrollment',
+                'fitness test requirements',
+                'cancel enrollment',
+                'sport hours needed',
+                'password reset'
+              ].map((example) => (
+                <button
+                  key={example}
+                  onClick={() => setSearchTerm(example)}
+                  className="px-3 py-1 bg-secondary/50 text-inactive text-xs rounded-full hover:bg-brand-violet/10 hover:text-brand-violet transition-colors"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* FAQ Categories */}
@@ -160,8 +320,9 @@ const FAQPage: React.FC = () => {
 
               {/* FAQ Items */}
               <div className="divide-y divide-secondary">
-                {category.items.map((item) => {
+                {category.items.map((item: FAQItemWithSearch) => {
                   const isOpen = openItems.includes(item.id);
+                  const hasSearchScore = item.searchScore > 0;
                   
                   return (
                     <div key={item.id} className="p-6">
@@ -173,12 +334,31 @@ const FAQPage: React.FC = () => {
                           <div className="p-1 bg-secondary rounded-full mt-1 flex-shrink-0">
                             <HelpCircle className="text-inactive" size={14} />
                           </div>
-                          <h3 className="text-contrast font-medium group-hover:text-brand-violet transition-colors">
-                            {item.question}
-                          </h3>
+                          <div className="flex-1">
+                            <h3 className="text-contrast font-medium group-hover:text-brand-violet transition-colors">
+                              {item.question}
+                            </h3>
+                            {hasSearchScore && item.searchMatches.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {item.searchMatches.map((match: string, index: number) => (
+                                  <span
+                                    key={index}
+                                    className="px-2 py-1 bg-brand-violet/10 text-brand-violet text-xs rounded-full"
+                                  >
+                                    {match}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
-                        <div className="ml-4 flex-shrink-0">
+                        <div className="ml-4 flex-shrink-0 flex items-center space-x-2">
+                          {hasSearchScore && (
+                            <div className="text-xs text-inactive bg-secondary px-2 py-1 rounded">
+                              {Math.round(item.searchScore)}% match
+                            </div>
+                          )}
                           {isOpen ? (
                             <ChevronUp className="text-inactive group-hover:text-brand-violet transition-colors" size={20} />
                           ) : (
@@ -223,12 +403,42 @@ const FAQPage: React.FC = () => {
 
       {/* No Results */}
       {searchTerm && filteredCategories.length === 0 && (
-        <div className="innohassle-card p-8 text-center">
+        <div className="innohassle-card p-8 text-center space-y-4">
           <Search className="mx-auto text-inactive mb-4" size={48} />
           <h3 className="text-xl font-semibold text-contrast mb-2">No results found</h3>
-          <p className="text-inactive">
-            Try adjusting your search terms or browse through the categories above.
+          <p className="text-inactive mb-4">
+            No FAQ items match your search for "{searchTerm}".
           </p>
+          
+          <div className="bg-secondary/30 rounded-lg p-4 text-left">
+            <h4 className="font-medium text-contrast mb-2">Search Tips:</h4>
+            <ul className="text-sm text-inactive space-y-1">
+              <li>• Try different keywords or synonyms</li>
+              <li>• Use multiple words (e.g., "book training session")</li>
+              <li>• Check the typo tolerance option if enabled</li>
+              <li>• Try broader terms (e.g., "fitness" instead of "push-ups")</li>
+              <li>• Consider searching for related topics in different categories</li>
+            </ul>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 justify-center">
+            <span className="text-sm text-inactive">Try searching for:</span>
+            {[
+              'enrollment',
+              'fitness test requirements', 
+              'cancel enrollment',
+              'sport hours needed',
+              'password reset'
+            ].map((suggestion) => (
+              <button
+                key={suggestion}
+                onClick={() => setSearchTerm(suggestion)}
+                className="px-3 py-1 bg-brand-violet/10 text-brand-violet text-sm rounded-full hover:bg-brand-violet/20 transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

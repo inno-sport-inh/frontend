@@ -48,6 +48,56 @@ npm run dev
 
 4. Open your browser and navigate to `http://localhost:5173`
 
+## Docker Deployment
+
+### Quick Deploy
+
+To deploy the application using Docker:
+
+```bash
+npm run deploy
+```
+
+Or manually:
+
+```bash
+# Build and run with docker-compose
+docker-compose up -d --build
+
+# Or build and run with Docker directly
+docker build -t sport-frontend:latest .
+docker run -d --name sport-frontend -p 80:80 sport-frontend:latest
+```
+
+### Production URL
+
+The application is deployed at: **https://profile.t9d.store**
+
+### Docker Commands
+
+- `npm run docker:build` - Build Docker image
+- `npm run docker:run` - Run container
+- `npm run docker:stop` - Stop and remove container
+- `npm run docker:compose:up` - Start with docker-compose
+- `npm run docker:compose:down` - Stop docker-compose
+- `npm run deploy` - Full deployment script
+
+### Environment Variables
+
+Create `.env.production` for production settings:
+
+```env
+VITE_API_URL=https://profile.t9d.store/api
+VITE_APP_URL=https://profile.t9d.store
+```
+
+## Deployment Architecture
+
+- **Frontend**: React SPA served by Nginx
+- **Web Server**: Nginx with gzip compression and SPA routing
+- **Container**: Alpine Linux based Docker container
+- **Build**: Multi-stage Docker build for optimization
+
 ### Build for Production
 
 ```bash

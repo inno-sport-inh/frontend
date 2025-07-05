@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Send, Mail, User, Clock, UserPlus, CheckCircle } from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
-import { generateSessionId, getDayOfWeek, formatSessionDate } from '../utils/sessionUtils';
 
 const ClubPage: React.FC = () => {
   const { clubName } = useParams<{ clubName: string }>();
-  const { enrollInSession, cancelEnrollment, isEnrolled } = useAppStore();
+  const [enrolledSessions, setEnrolledSessions] = useState<Set<string>>(new Set());
   const [enrollmentLoading, setEnrollmentLoading] = useState<string | null>(null);
 
   const handleEnrollment = async (sessionId: string) => {
     setEnrollmentLoading(sessionId);
     try {
-      if (isEnrolled(sessionId)) {
-        await cancelEnrollment(sessionId);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (enrolledSessions.has(sessionId)) {
+        setEnrolledSessions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(sessionId);
+          return newSet;
+        });
       } else {
-        await enrollInSession(sessionId);
+        setEnrolledSessions(prev => new Set(prev).add(sessionId));
       }
     } catch (error) {
       console.error('Enrollment error:', error);
@@ -34,24 +39,30 @@ const ClubPage: React.FC = () => {
         const sessionDate = new Date();
         sessionDate.setDate(now.getDate() + (week * 7) + ((getDayOfWeek(session.day) - now.getDay() + 7) % 7));
         
-        // Use consistent session ID format
-        const sessionId = generateSessionId(
-          session.activity, // Now we have the activity field
-          session.day,
-          session.time,
-          sessionDate
-        );
-        
+        const sessionId = `${session.day}-${session.time}-${week}`;
         upcomingSessions.push({
           id: sessionId,
           ...session,
           date: sessionDate,
-          isEnrolled: isEnrolled(sessionId)
+          isEnrolled: enrolledSessions.has(sessionId)
         });
       });
     }
     
     return upcomingSessions.sort((a, b) => a.date.getTime() - b.date.getTime());
+  };
+
+  const getDayOfWeek = (day: string) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days.indexOf(day);
+  };
+
+  const formatSessionDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   const getClubData = (name: string) => {
@@ -84,8 +95,9 @@ Join us and become part of a community that values sportsmanship, improvement, a
           }
         ],
         schedule: [
-          { day: 'Tuesday', time: '11:00 - 12:30', location: 'Sports Complex - Hall A', activity: 'Table Tennis' },
-          { day: 'Thursday', time: '19:00 - 20:30', location: 'Sports Complex - Hall A', activity: 'Table Tennis' }
+          { day: 'Monday', time: '18:00 - 20:00', location: 'Sports Complex - Hall A' },
+          { day: 'Wednesday', time: '19:00 - 21:00', location: 'Sports Complex - Hall A' },
+          { day: 'Friday', time: '17:00 - 19:00', location: 'Sports Complex - Hall A' }
         ],
         achievements: [
           'Inter-University Championship 2023 - 2nd Place',
@@ -115,9 +127,9 @@ From fundamentals like shooting and dribbling to advanced tactics and team play,
           }
         ],
         schedule: [
-          { day: 'Monday', time: '09:00 - 10:30', location: 'Sports Complex - Main Court', activity: 'Basketball' },
-          { day: 'Wednesday', time: '14:00 - 15:30', location: 'Sports Complex - Main Court', activity: 'Basketball' },
-          { day: 'Friday', time: '18:00 - 19:30', location: 'Sports Complex - Main Court', activity: 'Basketball' }
+          { day: 'Tuesday', time: '19:00 - 21:00', location: 'Sports Complex - Main Court' },
+          { day: 'Thursday', time: '18:00 - 20:00', location: 'Sports Complex - Main Court' },
+          { day: 'Saturday', time: '10:00 - 12:00', location: 'Sports Complex - Main Court' }
         ],
         achievements: [
           'University League Champions 2023',
@@ -146,8 +158,9 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
           }
         ],
         schedule: [
-          { day: 'Monday', time: '14:00 - 15:30', location: 'Aquatic Center - Pool', activity: 'Swimming' },
-          { day: 'Wednesday', time: '18:00 - 19:30', location: 'Aquatic Center - Pool', activity: 'Swimming' }
+          { day: 'Monday', time: '17:00 - 19:00', location: 'Aquatic Center - Pool' },
+          { day: 'Wednesday', time: '18:00 - 20:00', location: 'Aquatic Center - Pool' },
+          { day: 'Friday', time: '19:00 - 21:00', location: 'Aquatic Center - Pool' }
         ],
         achievements: [
           'Regional Swimming Championship 2023 - Multiple medals',
@@ -231,14 +244,14 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
             
             <div className="space-y-3">
               {upcomingSessions.slice(0, 8).map((session) => {
-                const isEnrolledInSession = isEnrolled(session.id);
+                const isEnrolled = enrolledSessions.has(session.id);
                 const isLoading = enrollmentLoading === session.id;
                 
                 return (
                   <div
                     key={session.id}
                     className={`p-4 rounded-lg border transition-all ${
-                      isEnrolledInSession 
+                      isEnrolled 
                         ? 'border-brand-violet bg-brand-violet/5' 
                         : 'border-secondary bg-primary hover:border-brand-violet/50'
                     }`}
@@ -247,7 +260,7 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                           <span className="font-medium text-contrast">{formatSessionDate(session.date)}</span>
-                          {isEnrolledInSession && (
+                          {isEnrolled && (
                             <CheckCircle className="text-brand-violet" size={16} />
                           )}
                         </div>
@@ -267,15 +280,15 @@ Whether you want to improve your fitness, learn proper technique, or compete at 
                         onClick={() => handleEnrollment(session.id)}
                         disabled={isLoading}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          isEnrolledInSession
+                          isEnrolled
                             ? 'bg-red-500 text-white hover:bg-red-600'
                             : 'bg-brand-violet text-white hover:bg-brand-violet/80'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {isLoading ? (
                           'Loading...'
-                        ) : isEnrolledInSession ? (
-                          'Cancel'
+                        ) : isEnrolled ? (
+                          'Unenroll'
                         ) : (
                           <div className="flex items-center space-x-1">
                             <UserPlus size={14} />

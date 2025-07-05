@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, AlertTriangle, Clock, Calendar } from 'lucide-react';
 
-interface CheckoutModalProps {
+interface CancelTrainingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -11,7 +11,7 @@ interface CheckoutModalProps {
   isLoading?: boolean;
 }
 
-const CheckoutModal: React.FC<CheckoutModalProps> = ({
+const CancelTrainingModal: React.FC<CancelTrainingModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
@@ -28,7 +28,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="text-red-500" size={24} />
-            <h2 className="text-lg font-semibold text-contrast">Cancel Enrollment</h2>
+            <h2 className="text-lg font-semibold text-contrast">Cancel Training Session</h2>
           </div>
           <button
             onClick={onClose}
@@ -50,7 +50,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <span className="font-medium text-red-700">Important Notice</span>
             </div>
             <p className="text-sm text-red-600">
-              Canceling less than 2 hours before the session may affect your ability to enroll in future sessions.
+              Canceling less than 2 hours before the session may affect your ability to book future sessions.
             </p>
           </div>
           
@@ -109,4 +109,4 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   );
 };
 
-export default CheckoutModal;
+export default CancelTrainingModal;

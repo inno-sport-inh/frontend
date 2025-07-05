@@ -13,7 +13,7 @@ function App() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}>
       <TopBar />
-      <main className="px-4 py-8">
+      <main className="px-4 py-8 mobile-content-bottom-padding">
         <Routes>
           <Route path="/" element={<SchedulePage />} />
           <Route path="/schedule" element={<SchedulePage />} />
