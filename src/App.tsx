@@ -1,14 +1,20 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import TopBar from './components/TopBar';
 import SchedulePage from './pages/SchedulePage';
-import ClubsPage from './pages/ClubsPage';
-import ClubPage from './pages/ClubPage';
 import HistoryPage from './pages/HistoryPage';
 import FAQPage from "./pages/FAQPage.tsx";
+import ClubPage from "./pages/ClubPage.tsx";
+import ClubsPage from "./pages/ClubsPage.tsx";
 
 function App() {
-  const { isLoading } = useAppStore();
+  const { isLoading, loadUserProfile } = useAppStore();
+
+  // Load user profile on app initialization
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}>

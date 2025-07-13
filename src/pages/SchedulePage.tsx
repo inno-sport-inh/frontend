@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
+import { MedicalReferenceModal } from '../components/MedicalReferenceModal';
 import { generateSessionId } from '../utils/sessionUtils';
+import { studentAPI } from '../services/studentAPI';
+import { studentService } from '../services/studentService';
 
 // Utility functions for date handling
 const getWeekStart = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  return new Date(d.setDate(diff));
+  const weekStart = new Date(d.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0); // Set to start of day
+  return weekStart;
 };
 
 const getWeekEnd = (date: Date) => {
   const weekStart = getWeekStart(date);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999); // Set to end of day
   return weekEnd;
 };
 
@@ -43,6 +49,8 @@ interface Activity {
   currentParticipants: number;
   isPast: boolean;
   isRegistrationOpen: boolean;
+  groupId: number;
+  trainingId: number;
 }
 
 // Fixed weekly schedule - same activities every week
@@ -82,7 +90,63 @@ const WEEKLY_SCHEDULE = [
   ]}
 ];
 
-const generateWeekActivities = (weekStart: Date): Activity[] => {
+const generateWeekActivities = async (weekStart: Date): Promise<Activity[]> => {
+  const weekEnd = getWeekEnd(weekStart);
+  
+  console.log('🗓️ Fetching schedule for week:', {
+    weekStart: weekStart.toISOString(),
+    weekEnd: weekEnd.toISOString(),
+    weekStartLocal: weekStart.toLocaleDateString(),
+    weekEndLocal: weekEnd.toLocaleDateString()
+  });
+  
+  try {
+    const trainings = await studentAPI.getWeeklySchedule(weekStart, weekEnd);
+    console.log('📊 Received trainings from API:', trainings.length, 'trainings');
+    console.log('📋 Raw API response:', trainings);
+    const now = new Date();
+    
+    return trainings.map((training) => {
+      const startTime = new Date(training.start);
+      const endTime = new Date(training.end);
+      const isPastActivity = endTime < now;
+      
+      // Check if registration is open (registration opens exactly 1 week before activity starts)
+      const registrationOpenTime = new Date(startTime);
+      registrationOpenTime.setDate(registrationOpenTime.getDate() - 7);
+      const isRegistrationOpen = now >= registrationOpenTime;
+      
+      // Generate consistent session ID
+      const sessionId = generateSessionId(
+        training.group_name,
+        startTime.toLocaleDateString('en-US', { weekday: 'long' }),
+        `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+        startTime
+      );
+      
+      return {
+        id: sessionId,
+        activity: training.group_name,
+        time: `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+        dayOfWeek: startTime.toLocaleDateString('en-US', { weekday: 'long' }),
+        date: startTime,
+        status: isPastActivity ? 'past' as const : (training.checked_in ? 'booked' as const : 'free' as const),
+        maxParticipants: training.capacity,
+        currentParticipants: training.participants.total_checked_in,
+        isPast: isPastActivity,
+        isRegistrationOpen: isRegistrationOpen && training.can_check_in,
+        groupId: training.group_id,
+        trainingId: training.id
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching weekly schedule:', error);
+    // Fallback to mock data if API fails
+    return generateMockWeekActivities(weekStart);
+  }
+};
+
+const generateMockWeekActivities = (weekStart: Date): Activity[] => {
   const activities: Activity[] = [];
   const now = new Date();
   
@@ -131,7 +195,9 @@ const generateWeekActivities = (weekStart: Date): Activity[] => {
         maxParticipants: activityTemplate.maxParticipants,
         currentParticipants: Math.floor(Math.random() * 4) + 2, // Random current participants for demo
         isPast: isPastActivity,
-        isRegistrationOpen: isRegistrationOpen
+        isRegistrationOpen: isRegistrationOpen,
+        groupId: Math.floor(Math.random() * 100) + 1, // Mock group ID
+        trainingId: Math.floor(Math.random() * 1000) + 1 // Mock training ID
       });
     });
   });
@@ -140,28 +206,83 @@ const generateWeekActivities = (weekStart: Date): Activity[] => {
 };
 
 const SchedulePage: React.FC = () => {
-  const { isLoading, enrollInSession, cancelEnrollment, isEnrolled, canEnrollInMoreSessions } = useAppStore();
+  const { isLoading, canEnrollInMoreSessions } = useAppStore();
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showMedicalModal, setShowMedicalModal] = useState(false);
+  
+  // Local function to check if user is enrolled in activity
+  const isEnrolled = (activityId: string) => {
+    const activity = weekActivities.find(a => a.id === activityId);
+    return activity?.status === 'booked';
+  };
   const [showSportInfoModal, setShowSportInfoModal] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string>('');
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => getWeekStart(new Date()));
-  const [weekActivities, setWeekActivities] = useState(() => generateWeekActivities(getWeekStart(new Date())));
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    // Initialize with current week (not hardcoded date)
+    return getWeekStart(new Date());
+  });
+  const [weekActivities, setWeekActivities] = useState<Activity[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pastDaysCollapsed, setPastDaysCollapsed] = useState(true);
   const [isModalLoading, setIsModalLoading] = useState(false);
-
-  const completedHours = 12;
-  const totalHours = 30;
-  const progressPercentage = (completedHours / totalHours) * 100;
-  const studentPercentile = Math.min(Math.floor(progressPercentage * 0.85 + Math.random() * 15), 95); // Calculate percentile based on progress
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [studentProgress, setStudentProgress] = useState({
+    completedHours: 12,
+    totalHours: 30,
+    progressPercentage: 40,
+    debt: 0,
+    selfSportHours: 0,
+    isComplete: false
+  });
+  const [studentPercentile, setStudentPercentile] = useState(85);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Load student progress data
+  useEffect(() => {
+    const loadStudentData = async () => {
+      try {
+        // Get profile first since it contains all the hours data we need
+        const profile = await studentService.getProfile();
+        const percentile = await studentService.getStudentPercentile();
+        
+        // Calculate progress directly from profile data
+        const progress = studentService.calculateProgressFromProfile(profile);
+        
+        setStudentProgress(progress);
+        setStudentPercentile(percentile);
+        setStudentProfile(profile);
+        
+        console.log('📊 Student data loaded:', {
+          profile,
+          progress,
+          percentile
+        });
+      } catch (error) {
+        console.error('Error loading student data:', error);
+      }
+    };
+
+    loadStudentData();
+  }, []);
+
   // Update activities when week changes
   useEffect(() => {
-    const newActivities = generateWeekActivities(currentWeekStart);
-    setWeekActivities(newActivities);
+    const loadActivities = async () => {
+      setIsLoadingActivities(true);
+      try {
+        const newActivities = await generateWeekActivities(currentWeekStart);
+        setWeekActivities(newActivities);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+      } finally {
+        setIsLoadingActivities(false);
+      }
+    };
+
+    loadActivities();
   }, [currentWeekStart]);
 
   // Update activity status every minute to handle time-based changes
@@ -181,35 +302,49 @@ const SchedulePage: React.FC = () => {
         return {
           ...activity,
           isPast: isPastActivity,
-          status: isPastActivity ? 'past' : (isEnrolled(activity.id) ? 'booked' : 'free')
+          status: isPastActivity ? 'past' : activity.status // Keep current booking status but mark as past if time has passed
         };
       }));
     };
 
-    // Update immediately
-    updateActivityStatus();
-    
     // Set up interval to update every minute
     const interval = setInterval(updateActivityStatus, 60000);
     
     return () => clearInterval(interval);
-  }, [isEnrolled]);
+  }, []); // No dependencies needed
 
   const handlePreviousWeek = () => {
     const newWeekStart = new Date(currentWeekStart);
     newWeekStart.setDate(currentWeekStart.getDate() - 7);
+    console.log('⬅️ Navigating to previous week:', {
+      from: currentWeekStart.toLocaleDateString(),
+      to: newWeekStart.toLocaleDateString()
+    });
     setCurrentWeekStart(newWeekStart);
   };
 
   const handleNextWeek = () => {
     const newWeekStart = new Date(currentWeekStart);
     newWeekStart.setDate(currentWeekStart.getDate() + 7);
+    console.log('➡️ Navigating to next week:', {
+      from: currentWeekStart.toLocaleDateString(),
+      to: newWeekStart.toLocaleDateString()
+    });
     setCurrentWeekStart(newWeekStart);
   };
 
   const handleBookActivity = async (activityId: string) => {
     try {
-      await enrollInSession(activityId);
+      const activity = weekActivities.find(a => a.id === activityId);
+      if (!activity || !activity.trainingId) {
+        console.error('Training not found or missing trainingId');
+        return;
+      }
+
+      // Make API call to check in
+      await studentAPI.checkIn(activity.trainingId);
+      
+      // Update local state to reflect the change
       setWeekActivities(prev => prev.map(activity =>
         activity.id === activityId
           ? { 
@@ -224,13 +359,21 @@ const SchedulePage: React.FC = () => {
     }
   };
 
-
   const confirmCancelBooking = async () => {
     if (selectedActivity) {
       try {
         setIsModalLoading(true);
-        await cancelEnrollment(selectedActivity.id);
         
+        const activity = weekActivities.find(a => a.id === selectedActivity.id);
+        if (!activity || !activity.trainingId) {
+          console.error('Training not found or missing trainingId');
+          return;
+        }
+
+        // Make API call to cancel check-in
+        await studentAPI.cancelCheckIn(activity.trainingId);
+        
+        // Update local state to reflect the change
         setWeekActivities(prev => prev.map(activity =>
           activity.id === selectedActivity.id
             ? { 
@@ -265,8 +408,8 @@ const SchedulePage: React.FC = () => {
 
   const getActivityStatus = (activity: Activity) => {
     if (activity.isPast) return 'past';
-    if (isEnrolled(activity.id)) return 'booked';
-    return 'free';
+    // Check if user is enrolled/checked in based on the activity data
+    return activity.status; // This now comes from the API (checked_in field)
   };
 
   const getParticipantsBadgeStyle = (activity: Activity) => {
@@ -354,27 +497,32 @@ const SchedulePage: React.FC = () => {
 
   return (
     <div 
-      className="max-w-7xl mx-auto space-y-8 mobile-content-bottom-padding" 
+      className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding" 
       style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}
     >
       {/* Progress Header */}
-      <div className="relative overflow-hidden innohassle-card p-6 sm:p-8 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
+      <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
         {/* Background decoration */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-violet/10 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-brand-violet/10 to-transparent rounded-full blur-2xl translate-y-12 -translate-x-12"></div>
         
         <div className="relative text-center">
-          <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl">
+          <div className="mb-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 mb-3 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl">
               <div className="w-8 h-8 bg-gradient-to-br from-brand-violet to-brand-violet/80 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">🏃</span>
               </div>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-              Your Sport Progress
+              {studentProfile ? `${studentProfile.name}'s Sport Progress` : 'Your Sport Progress'}
             </h2>
             <p className="text-sm sm:text-base text-inactive">
-              You've completed <span className="font-semibold text-brand-violet">{completedHours}</span> out of <span className="font-semibold text-contrast">{totalHours}</span> required hours this semester
+              You've completed <span className="font-semibold text-brand-violet">{studentProgress.completedHours}</span> out of <span className="font-semibold text-contrast">{studentProgress.totalHours}</span> required hours this semester
+              {studentProgress.completedHours > studentProgress.totalHours && (
+                <span className="block mt-1 text-success-500 font-medium">
+                  🎉 Exceeded requirement by {studentProgress.completedHours - studentProgress.totalHours} hours!
+                </span>
+              )}
             </p>
           </div>
           
@@ -383,11 +531,16 @@ const SchedulePage: React.FC = () => {
             <div className="flex items-center justify-between text-xs sm:text-sm text-inactive mb-3">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-brand-violet rounded-full animate-pulse"></div>
-                <span className="font-semibold">{completedHours} hours completed</span>
+                <span className="font-semibold">{studentProgress.completedHours} hours completed</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-secondary rounded-full"></div>
-                <span className="font-medium">{totalHours - completedHours} hours remaining</span>
+                <span className="font-medium">
+                  {studentProgress.completedHours >= studentProgress.totalHours 
+                    ? `+${studentProgress.completedHours - studentProgress.totalHours} extra hours`
+                    : `${studentProgress.totalHours - studentProgress.completedHours} hours remaining`
+                  }
+                </span>
               </div>
             </div>
             
@@ -401,7 +554,7 @@ const SchedulePage: React.FC = () => {
                 <div 
                   className="h-full rounded-2xl transition-all duration-1500 ease-out relative overflow-hidden group"
                   style={{ 
-                    width: `${Math.min(progressPercentage, 100)}%`,
+                    width: `${Math.min(studentProgress.progressPercentage, 100)}%`,
                     background: 'linear-gradient(90deg, rgb(var(--color-brand-gradient-start)) 0%, rgb(var(--color-brand-violet)) 50%, rgb(var(--color-brand-gradient-end)) 100%)'
                   }}
                 >
@@ -411,7 +564,7 @@ const SchedulePage: React.FC = () => {
                   {/* Progress text overlay */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-white font-bold text-xs drop-shadow-sm">
-                      {progressPercentage.toFixed(1)}%
+                      {studentProgress.progressPercentage.toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -419,7 +572,7 @@ const SchedulePage: React.FC = () => {
                 {/* Progress indicator dot - positioned within the container */}
                 <div 
                   className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 transition-all duration-1500 ease-out group hover:scale-110 z-10"
-                  style={{ left: `calc(${Math.min(progressPercentage, 100)}% - 16px)` }}
+                  style={{ left: `calc(${Math.min(studentProgress.progressPercentage, 100)}% - 16px)` }}
                 >
                   <div className="w-full h-full bg-white rounded-full shadow-lg border-[3px] border-brand-violet flex items-center justify-center">
                     <div className="w-4 h-4 bg-gradient-to-br from-brand-violet to-brand-violet/80 rounded-full animate-pulse"></div>
@@ -446,9 +599,27 @@ const SchedulePage: React.FC = () => {
               <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 px-4 py-2 rounded-xl border border-brand-violet/20">
                 <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
                 <span className="text-sm font-bold text-contrast">
-                  {progressPercentage.toFixed(1)}% Complete
+                  {studentProgress.progressPercentage.toFixed(1)}% Complete
                 </span>
               </div>
+              
+              {studentProgress.selfSportHours > 0 && (
+                <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-blue-500/5 px-4 py-2 rounded-xl border border-blue-500/20">
+                  <span className="text-lg">🏋️</span>
+                  <span className="text-sm font-bold text-blue-500">
+                    {studentProgress.selfSportHours} Self-Sport Hours
+                  </span>
+                </div>
+              )}
+              
+              {studentProgress.debt > 0 && (
+                <div className="flex items-center space-x-2 bg-gradient-to-r from-orange-500/10 to-orange-500/5 px-4 py-2 rounded-xl border border-orange-500/20">
+                  <span className="text-lg">⚠️</span>
+                  <span className="text-sm font-bold text-orange-500">
+                    {studentProgress.debt} Hours Debt
+                  </span>
+                </div>
+              )}
               
               <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
                 <span className="text-lg">🎯</span>
@@ -457,7 +628,7 @@ const SchedulePage: React.FC = () => {
                 </span>
               </div>
               
-              {progressPercentage >= 100 && (
+              {studentProgress.progressPercentage >= 100 && (
                 <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/20 to-brand-violet/10 px-4 py-2 rounded-xl border border-brand-violet/30 animate-bounce">
                   <span className="text-lg">🏆</span>
                   <span className="text-sm font-bold text-brand-violet">
@@ -470,20 +641,25 @@ const SchedulePage: React.FC = () => {
             {/* Motivational Message */}
             <div className="mt-4 text-center">
               <p className="text-sm text-inactive">
-                {progressPercentage >= 100 
+                {studentProgress.progressPercentage >= 100 
                   ? "Congratulations! You've completed all required hours!" 
-                  : progressPercentage >= 75 
+                  : studentProgress.progressPercentage >= 75 
                   ? "You're almost there! Keep it up!" 
-                  : progressPercentage >= 50 
+                  : studentProgress.progressPercentage >= 50 
                   ? "Great progress! You're halfway there!" 
-                  : progressPercentage >= 25 
+                  : studentProgress.progressPercentage >= 25 
                   ? "Good start! Keep building momentum!" 
                   : "Let's get started on your fitness journey!"
                 }
               </p>
-              {progressPercentage < 100 && (
+              {studentProgress.progressPercentage < 100 && (
                 <p className="text-xs text-inactive mt-1">
-                  Estimated time to completion: {Math.ceil((totalHours - completedHours) / 2)} weeks
+                  Estimated time to completion: {Math.ceil(Math.max((studentProgress.totalHours - studentProgress.completedHours), 0) / 2)} weeks
+                </p>
+              )}
+              {studentProgress.progressPercentage >= 100 && studentProgress.completedHours > studentProgress.totalHours && (
+                <p className="text-xs text-success-500 mt-1 font-medium">
+                  You've exceeded the requirement by {studentProgress.completedHours - studentProgress.totalHours} hours! 🌟
                 </p>
               )}
             </div>
@@ -493,14 +669,26 @@ const SchedulePage: React.FC = () => {
 
       {/* Header */}
       <div className="text-center sm:text-left">
-        <div className="flex items-center justify-center sm:justify-start space-x-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
-            <span className="text-2xl">📅</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">📅</span>
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-contrast">Weekly Schedule</h1>
+              <p className="text-inactive text-sm sm:text-base">Enroll in your training sessions for the week</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-contrast">Weekly Schedule</h1>
-            <p className="text-inactive text-sm sm:text-base">Enroll in your training sessions for the week</p>
-          </div>
+          
+          {/* Medical Reference Button */}
+          <button
+            onClick={() => setShowMedicalModal(true)}
+            className="innohassle-button-primary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+          >
+            <FileText size={16} />
+            <span className="hidden sm:inline">Medical Reference</span>
+            <span className="sm:hidden">Medical</span>
+          </button>
         </div>
       </div>
 
@@ -599,13 +787,21 @@ const SchedulePage: React.FC = () => {
           return (
             <div key={day} className="group innohassle-card overflow-hidden border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform">
               {/* Day Header */}
-              <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-6 py-5 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
+              <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-4 py-3 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
                 {getDayHeader(day, index)}
               </div>
               
               {/* Activities */}
-              <div className="p-6 space-y-4 bg-gradient-to-b from-floating to-primary/20">
-                {dayActivities.length === 0 ? (
+              <div className="p-4 space-y-3 bg-gradient-to-b from-floating to-primary/20">
+                {isLoadingActivities ? (
+                  <div className="text-center py-12 text-inactive">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-brand-violet border-t-transparent rounded-full"></div>
+                    </div>
+                    <p className="font-medium">Loading activities...</p>
+                    <p className="text-sm mt-1 opacity-75">Please wait while we fetch the latest schedule</p>
+                  </div>
+                ) : dayActivities.length === 0 ? (
                   <div className="text-center py-12 text-inactive">
                     <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-secondary/30 to-secondary/20 rounded-2xl flex items-center justify-center">
                       <Clock size={32} className="opacity-50" />
@@ -737,7 +933,7 @@ const SchedulePage: React.FC = () => {
                                       {isFull 
                                         ? 'Full' 
                                         : !activity.isRegistrationOpen 
-                                        ? 'Registration closed' 
+                                        ? 'Enroll'
                                         : 'Enroll'
                                       }
                                     </button>
@@ -793,6 +989,16 @@ const SchedulePage: React.FC = () => {
         sportName={selectedSport}
       />
 
+      {/* Medical Reference Modal */}
+      <MedicalReferenceModal
+        isOpen={showMedicalModal}
+        onClose={() => setShowMedicalModal(false)}
+        onSuccess={() => {
+          // Можно добавить уведомление об успешной загрузке
+          console.log('Medical reference uploaded successfully');
+        }}
+      />
+
       {/* Activity Details Modal */}
       {isModalOpen && selectedActivity && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
@@ -808,7 +1014,7 @@ const SchedulePage: React.FC = () => {
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-violet/10 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
               
-              <div className="p-8 relative">
+              <div className="p-6 relative">
                 {/* Modal Header */}
                 <div className="flex items-start justify-between mb-8">
                   <div className="flex items-center space-x-4">
@@ -874,7 +1080,7 @@ const SchedulePage: React.FC = () => {
                   </div>
 
                   {/* Enhanced Status Information */}
-                  <div className="bg-gradient-to-r from-primary/50 to-secondary/30 rounded-2xl p-6 border border-secondary/50">
+                  <div className="bg-gradient-to-r from-primary/50 to-secondary/30 rounded-2xl p-4 border border-secondary/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`w-3 h-3 rounded-full ${
@@ -950,7 +1156,16 @@ const SchedulePage: React.FC = () => {
                           // На мобильной версии отменяем запись напрямую без дополнительного модального окна
                           try {
                             setIsModalLoading(true);
-                            await cancelEnrollment(selectedActivity.id);
+                            
+                            const activity = weekActivities.find(a => a.id === selectedActivity.id);
+                            if (!activity || !activity.trainingId) {
+                              console.error('Training not found or missing trainingId');
+                              return;
+                            }
+
+                            // Make API call to cancel check-in
+                            await studentAPI.cancelCheckIn(activity.trainingId);
+                            
                             setWeekActivities(prev => prev.map(activity =>
                               activity.id === selectedActivity.id
                                 ? { 

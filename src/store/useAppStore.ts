@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Activity } from '../types';
 import { mockActivities } from '../data/mockData';
+import { StudentProfile } from '../services/types';
+import { studentAPI } from '../services/studentAPI';
 
 interface AppState {
   // Basic state
@@ -8,19 +10,20 @@ interface AppState {
   isLoading: boolean;
   error: string | null;
   
-  // Mock user state
-  user: { name: string; email: string } | null;
+  // User state with full profile
+  user: StudentProfile | null;
   isAuthenticated: boolean;
   
   // Enrollment state - shared between ClubPage and SchedulePage
   enrolledSessions: Set<string>;
   
   // Actions
-  bookActivity: (activityId: number) => Promise<void>;
+  bookActivity: (activityId: string) => Promise<void>;
   loadActivities: () => Promise<void>;
   clearError: () => void;
-  login: () => void;
+  login: () => Promise<void>;
   logout: () => void;
+  loadUserProfile: () => Promise<void>;
   
   // Enrollment actions
   enrollInSession: (sessionId: string) => Promise<void>;
@@ -35,11 +38,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   activities: mockActivities,
   isLoading: false,
   error: null,
-  user: { name: 'Test User', email: 'test@innopolis.university' },
+  user: null,
   isAuthenticated: true,
   enrolledSessions: new Set<string>(),
 
-  bookActivity: async (activityId: number) => {
+  bookActivity: async (activityId: string) => {
     set({ isLoading: true });
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -61,10 +64,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearError: () => set({ error: null }),
 
-  login: () => set({ 
-    isAuthenticated: true, 
-    user: { name: 'Test User', email: 'test@innopolis.university' } 
-  }),
+  login: async () => {
+    set({ isAuthenticated: true });
+    await get().loadUserProfile();
+  },
 
   logout: () => set({ 
     isAuthenticated: false, 
@@ -124,5 +127,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   canEnrollInMoreSessions: () => {
     const { enrolledSessions } = get();
     return enrolledSessions.size < 2; // Maximum 2 sessions per user
+  },
+
+  loadUserProfile: async () => {
+    set({ isLoading: true });
+    try {
+      const profile = await studentAPI.getProfile();
+      set({ user: profile, error: null });
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      set({ error: 'Failed to load user profile' });
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));
