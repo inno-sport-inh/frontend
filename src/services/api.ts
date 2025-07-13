@@ -1,8 +1,8 @@
 // API Configuration
-const API_BASE_URL = import.meta.env.DEV 
-  ? '/api' // Use proxy in development
-  : (import.meta.env.VITE_API_BASE_URL || 'http://t9d.store/api'); // Use direct URL in production
-const BEARER_TOKEN = import.meta.env.VITE_BEARER_TOKEN || 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImEuY2hlcmthc292QGlubm9wb2xpcy51bml2ZXJzaXR5IiwiZXhwIjoxNzUxODI3Mzg1LCJpYXQiOjE3NTE3NDA5ODUsImF1ZCI6InNwb3J0In0.Fr3cpK1hQtdqZC5-5F-l9NM-iH-AEfACo68o-psshq2BhYhOwjGdwIGEcxgZxWPu5ITU3Vxzd7kapYNGM_2xEqy7m_V8u8sqmY-Ujg9STgitaq_s6AiJqX7SvsDt1dFrR4HHUiJmlp09sihXVSJ9FDXKx_t3G6xs2eDL9oiBZSK_wYCUjOqPCnv1J7zf0A2OPyH4Aj55ep1tVN3U6Xw-sbvA4kom294ZiymmWiDNpVZNVCZPB6LTqF_Gfw68zFJiv1f8UsKEBylMRrpbqT0RyigaWFueYxpRlOj9NXO-Q1MW1gm__A4vXtrKBCY2dBWY8QpqRNmNYSuD6sw74TqvaQ';
+const API_BASE_URL = (import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app') || window.location.hostname.includes('t9d.store')) 
+  ? '/api' // Use proxy in development, local preview, and Vercel deployment
+  : (import.meta.env.VITE_API_BASE_URL || 'http://t9d.store/api'); // Use direct URL only for other production deployments
+const BEARER_TOKEN = import.meta.env.VITE_BEARER_TOKEN || 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImEuY2hlcmthc292QGlubm9wb2xpcy51bml2ZXJzaXR5IiwiZXhwIjoxNzUyNTEwNjkwLCJpYXQiOjE3NTI0MjQyOTAsImF1ZCI6InNwb3J0In0.MA27KvwVIeFsrP1DFiAxMVHE1d1XbXP1Bn7DofnLWValPUMQ26RLGG8YQzvUXXzlmZCi-rRxPxH8l-Xoko244TzRQ3eBGHgJOTmKdJfpwjW5kLLWKpBy0U_hfIkEl-5CYWVT8vaqLXYTn8ZrQDuzPnLWdq90v9nQVOOdBcspL7UcW6eKZhX968AAPzrNc319zOZ7i5mPZx96qPUkA-EPdE9x92HqJgsnXa_8Z8oLk-X92lXhqgu2XLy8yfwvqidQ_xz8FDXi5hUcPfTL5g8jLbrudymM5JFzIHo29m1X7uJ5jixBBmil0d9HXh8QsRZtlQzuycMiqxhfYTcj1PjUSQ';
 
 // API Error handling
 class APIError extends Error {
