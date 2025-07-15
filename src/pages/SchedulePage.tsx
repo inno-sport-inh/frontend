@@ -768,7 +768,7 @@ const SchedulePage: React.FC = () => {
       })()}
 
       {/* Weekly Schedule Grid */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {daysOfWeek.map((day, index) => {
           const dayActivities = getActivitiesForDay(day);
           const dayDate = new Date(currentWeekStart);
@@ -785,14 +785,14 @@ const SchedulePage: React.FC = () => {
           }
           
           return (
-            <div key={day} className="group innohassle-card overflow-hidden border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform">
+            <div key={day} className="group innohassle-card overflow-hidden border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform rounded-lg">
               {/* Day Header */}
-              <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-4 py-3 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
+              <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-2 py-2 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
                 {getDayHeader(day, index)}
               </div>
               
               {/* Activities */}
-              <div className="p-4 space-y-3 bg-gradient-to-b from-floating to-primary/20">
+              <div className="p-2 space-y-2 bg-gradient-to-b from-floating to-primary/20">
                 {isLoadingActivities ? (
                   <div className="text-center py-12 text-inactive">
                     <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
@@ -818,7 +818,7 @@ const SchedulePage: React.FC = () => {
                     return (
                       <div
                         key={activity.id}
-                        className={`group/activity p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
+                        className={`group/activity p-3 sm:p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
                           activityStatus === 'booked' 
                             ? 'border-brand-violet bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 shadow-lg shadow-brand-violet/20 hover:shadow-brand-violet/30' 
                             : activity.isPast
@@ -834,8 +834,8 @@ const SchedulePage: React.FC = () => {
                         {/* Mobile Layout - Only time and name */}
                         <div className="block sm:hidden">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className={`flex items-center space-x-2 cursor-pointer ${
+                            <div className="flex items-center space-x-2">
+                              <div className={`flex items-center space-x-1 cursor-pointer ${
                                 activity.isPast ? 'text-inactive' : 'text-contrast'
                               }`}
                                 onClick={(e) => {
@@ -843,15 +843,15 @@ const SchedulePage: React.FC = () => {
                                   handleSportClick(activity.activity);
                                 }}
                               >
-                                <Clock size={16} />
-                                <span className="font-medium text-sm hover:text-brand-violet transition-colors">{activity.time}</span>
+                                <Clock size={14} />
+                                <span className="font-medium text-xs hover:text-brand-violet transition-colors">{activity.time}</span>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Users size={16} className="text-inactive" />
-                                <span className="text-contrast font-medium text-sm">{activity.activity}</span>
+                              <div className="flex items-center space-x-1">
+                                <Users size={14} className="text-inactive" />
+                                <span className="text-contrast font-medium text-xs">{activity.activity}</span>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
                               {activityStatus === 'booked' && (
                                 <div className="innohassle-badge innohassle-badge-primary text-xs">
                                   ✓ Enrolled
@@ -863,9 +863,9 @@ const SchedulePage: React.FC = () => {
 
                         {/* Desktop Layout - Full details */}
                         <div className="hidden sm:block">
-                          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-6">
-                              <div className={`flex items-center space-x-2 cursor-pointer ${
+                          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                            <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+                              <div className={`flex items-center space-x-1 cursor-pointer ${
                                 activity.isPast ? 'text-inactive' : 'text-contrast'
                               }`}
                                 onClick={(e) => {
@@ -873,17 +873,17 @@ const SchedulePage: React.FC = () => {
                                   handleSportClick(activity.activity);
                                 }}
                               >
-                                <Clock size={18} />
-                                <span className="font-medium text-sm sm:text-base hover:text-brand-violet transition-colors">{activity.time}</span>
+                                <Clock size={15} />
+                                <span className="font-medium text-xs sm:text-sm hover:text-brand-violet transition-colors">{activity.time}</span>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Users size={18} className="text-inactive" />
+                              <div className="flex items-center space-x-1">
+                                <Users size={15} className="text-inactive" />
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleSportClick(activity.activity);
                                   }}
-                                  className="text-contrast font-medium hover:text-brand-violet transition-colors cursor-pointer underline-offset-2 hover:underline text-sm sm:text-base"
+                                  className="text-contrast font-medium hover:text-brand-violet transition-colors cursor-pointer underline-offset-2 hover:underline text-xs sm:text-sm"
                                 >
                                   {activity.activity}
                                 </button>
