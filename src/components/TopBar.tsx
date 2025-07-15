@@ -1,12 +1,14 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { User, LogOut, Calendar, HelpCircle, Users, BarChart3, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../hooks/useTheme';
 
+
 const TopBar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAppStore();
   const { isDark, toggleTheme } = useTheme();
+  const location = useLocation();
 
   return (
     <>
@@ -30,14 +32,16 @@ const TopBar: React.FC = () => {
             <nav className="hidden md:flex items-center space-x-1">
               <NavLink
                 to="/schedule"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
+                end
+                className={({ isActive }) => {
+                  const active = isActive || location.pathname === '/';
+                  return `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    active
                       ? 'text-white'
                       : 'text-inactive hover:text-contrast hover:bg-secondary'
-                  }`
-                }
-                style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
+                  }`;
+                }}
+                style={({ isActive }) => (isActive || location.pathname === '/') ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
               >
                 <Calendar size={16} />
                 <span>Schedule</span>
@@ -136,14 +140,16 @@ const TopBar: React.FC = () => {
         <div className="grid grid-cols-4 gap-1 px-2 py-2">
           <NavLink
             to="/schedule"
-            className={({ isActive }) =>
-              `flex flex-col items-center space-y-1 py-3 px-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                isActive
+            end
+            className={({ isActive }) => {
+              const active = isActive || location.pathname === '/';
+              return `flex flex-col items-center space-y-1 py-3 px-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                active
                   ? 'text-white scale-105'
                   : 'text-inactive hover:text-contrast hover:bg-secondary hover:scale-105'
-              }`
-            }
-            style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
+              }`;
+            }}
+            style={({ isActive }) => (isActive || location.pathname === '/') ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
           >
             <Calendar size={18} />
             <span>Schedule</span>
