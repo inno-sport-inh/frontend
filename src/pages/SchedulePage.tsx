@@ -210,11 +210,55 @@ const SchedulePage: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showMedicalModal, setShowMedicalModal] = useState(false);
+  const [dailyLimitError, setDailyLimitError] = useState<string>('');
   
   // Local function to check if user is enrolled in activity
   const isEnrolled = (activityId: string) => {
     const activity = weekActivities.find(a => a.id === activityId);
     return activity?.status === 'booked';
+  };
+
+  // Function to count booked sessions on a specific date
+  const getBookedSessionsOnDate = (targetDate: Date) => {
+    const targetDateString = targetDate.toDateString();
+    const bookedActivities = weekActivities.filter(activity => {
+      const activityDateString = activity.date.toDateString();
+      const isBooked = activity.status === 'booked';
+      const isSameDate = activityDateString === targetDateString;
+      return isSameDate && isBooked;
+    });
+    
+    console.log(`🔍 Counting booked sessions for ${targetDateString}:`, {
+      targetDate: targetDateString,
+      allActivitiesForDate: weekActivities.filter(a => a.date.toDateString() === targetDateString).map(a => ({
+        activity: a.activity,
+        time: a.time,
+        status: a.status
+      })),
+      bookedActivitiesCount: bookedActivities.length,
+      bookedActivities: bookedActivities.map(a => ({
+        activity: a.activity,
+        time: a.time,
+        status: a.status
+      }))
+    });
+    
+    return bookedActivities.length;
+  };
+
+  // Function to check if user can book another session on the target date
+  const canBookOnDate = (targetDate: Date) => {
+    const bookedCount = getBookedSessionsOnDate(targetDate);
+    const canBook = bookedCount < 2;
+    
+    console.log(`🤔 Can book on ${targetDate.toDateString()}?`, {
+      bookedCount,
+      limit: 2,
+      canBook,
+      targetDate: targetDate.toDateString()
+    });
+    
+    return canBook;
   };
   const [showSportInfoModal, setShowSportInfoModal] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string>('');
@@ -341,6 +385,29 @@ const SchedulePage: React.FC = () => {
         return;
       }
 
+      // Check daily limit before booking
+      const bookedCount = getBookedSessionsOnDate(activity.date);
+      console.log(`📅 Daily limit check for ${activity.activity} on ${activity.date.toDateString()}:`, {
+        currentBookedCount: bookedCount,
+        limit: 2,
+        canBook: bookedCount < 2,
+        activityDate: activity.date.toDateString(),
+        activityTime: activity.time
+      });
+
+      if (!canBookOnDate(activity.date)) {
+        console.log('❌ Daily limit reached, showing error message');
+        setDailyLimitError('You can only register for two training sessions per day.');
+        // Clear error after 5 seconds
+        setTimeout(() => setDailyLimitError(''), 5000);
+        return;
+      }
+
+      // Clear any existing error
+      setDailyLimitError('');
+
+      console.log('✅ Daily limit check passed, proceeding with booking');
+
       // Make API call to check in
       await studentAPI.checkIn(activity.trainingId);
       
@@ -414,6 +481,7 @@ const SchedulePage: React.FC = () => {
 
   const getParticipantsBadgeStyle = (activity: Activity) => {
     const availableSpots = activity.maxParticipants - activity.currentParticipants;
+    
     if (availableSpots === 0) return 'innohassle-badge-error';
     if (availableSpots <= 3) return 'innohassle-badge-warning';
     return 'innohassle-badge-success';
@@ -421,6 +489,7 @@ const SchedulePage: React.FC = () => {
 
   const getParticipantsText = (activity: Activity) => {
     const availableSpots = activity.maxParticipants - activity.currentParticipants;
+    
     if (availableSpots === 0) {
       return 'Full';
     } else if (availableSpots === 1) {
@@ -500,6 +569,27 @@ const SchedulePage: React.FC = () => {
       className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding" 
       style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}
     >
+      {/* Daily Limit Error Message */}
+      {dailyLimitError && (
+        <div className="innohassle-card p-4 bg-gradient-to-r from-error-500/10 to-error-500/5 border-2 border-error-500/30 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-error-500/20 rounded-xl flex items-center justify-center">
+              <AlertCircle size={20} className="text-error-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-error-500">Registration Limit Reached</h3>
+              <p className="text-sm text-error-500/80">{dailyLimitError}</p>
+            </div>
+            <button
+              onClick={() => setDailyLimitError('')}
+              className="ml-auto w-8 h-8 flex items-center justify-center bg-error-500/20 hover:bg-error-500/30 rounded-lg transition-colors text-error-500"
+            >
+              <span className="text-lg">×</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Progress Header */}
       <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
         {/* Background decoration */}
@@ -813,7 +903,19 @@ const SchedulePage: React.FC = () => {
                   dayActivities.map((activity) => {
                     const isFull = isActivityFull(activity);
                     const activityStatus = getActivityStatus(activity);
-                    const canBook = activityStatus === 'free' && !isFull && !activity.isPast && activity.isRegistrationOpen;
+                    const hasReachedDailyLimit = !canBookOnDate(activity.date);
+                    const canBook = activityStatus === 'free' && !isFull && !activity.isPast && activity.isRegistrationOpen && !hasReachedDailyLimit;
+                    
+                    // Debug logging for button states
+                    console.log(`🔍 Activity ${activity.activity} at ${activity.time} on ${activity.date.toDateString()}:`, {
+                      activityStatus,
+                      isFull,
+                      isPast: activity.isPast,
+                      isRegistrationOpen: activity.isRegistrationOpen,
+                      hasReachedDailyLimit,
+                      canBook,
+                      bookedSessionsOnDate: getBookedSessionsOnDate(activity.date)
+                    });
                     
                     return (
                       <div
@@ -825,7 +927,7 @@ const SchedulePage: React.FC = () => {
                             ? 'activity-past opacity-60 hover:opacity-80'
                             : !activity.isRegistrationOpen
                             ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 border-secondary/50 hover:border-secondary/70'
-                            : isFull
+                            : isFull || hasReachedDailyLimit
                             ? 'bg-gradient-to-r from-error-500/10 to-error-500/5 border-error-500/30 hover:border-error-500/50'
                             : 'bg-gradient-to-r from-floating to-primary/30 border-secondary/30 hover:border-brand-violet/50 hover:from-brand-violet/5 hover:to-brand-violet/10 hover:shadow-lg hover:shadow-brand-violet/10'
                         }`}
@@ -926,14 +1028,20 @@ const SchedulePage: React.FC = () => {
                                         e.stopPropagation();
                                         canBook && handleBookActivity(activity.id);
                                       }}
-                                      className="innohassle-button innohassle-button-primary px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors h-9"
+                                      className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors h-9 ${
+                                        canBook 
+                                          ? 'innohassle-button innohassle-button-primary' 
+                                          : 'innohassle-button innohassle-button-secondary cursor-not-allowed opacity-60'
+                                      }`}
                                       style={{ borderRadius: '0.75rem' }}
                                       disabled={!canBook || isLoading}
                                     >
                                       {isFull 
                                         ? 'Full' 
+                                        : hasReachedDailyLimit
+                                        ? 'Daily Limit'
                                         : !activity.isRegistrationOpen 
-                                        ? 'Enroll'
+                                        ? 'Registration Closed'
                                         : 'Enroll'
                                       }
                                     </button>
@@ -1130,6 +1238,19 @@ const SchedulePage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Daily limit indicator */}
+                  {!canBookOnDate(selectedActivity.date) && !isEnrolled(selectedActivity.id) && (
+                    <div className="flex items-center space-x-3 text-warning-500 p-4 bg-gradient-to-r from-warning-500/10 to-warning-500/5 rounded-2xl border border-warning-500/30">
+                      <AlertCircle size={20} />
+                      <div>
+                        <span className="text-sm font-semibold">Daily registration limit reached</span>
+                        <p className="text-xs text-warning-500/80 mt-1">
+                          You have already registered for {getBookedSessionsOnDate(selectedActivity.date)} training sessions today. Maximum 2 sessions per day.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Enrolled indicator */}
                   {isEnrolled(selectedActivity.id) && (
                     <div className="flex items-center space-x-3 text-brand-violet p-4 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 rounded-2xl border border-brand-violet/30">
@@ -1190,6 +1311,14 @@ const SchedulePage: React.FC = () => {
                     ) : (
                       <button
                         onClick={async () => {
+                          // Check daily limit before booking
+                          if (!canBookOnDate(selectedActivity.date)) {
+                            setDailyLimitError('You can only register for two training sessions per day.');
+                            setTimeout(() => setDailyLimitError(''), 5000);
+                            closeModal();
+                            return;
+                          }
+
                           // На мобильной версии записываемся напрямую без дополнительного модального окна
                           if (canEnrollInMoreSessions() && selectedActivity.currentParticipants < selectedActivity.maxParticipants && selectedActivity.isRegistrationOpen) {
                             try {
@@ -1204,11 +1333,11 @@ const SchedulePage: React.FC = () => {
                           }
                         }}
                         className={`flex-1 py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105 ${
-                          !canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen
+                          !canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date)
                             ? 'bg-secondary text-inactive cursor-not-allowed'
                             : 'innohassle-button-primary'
                         }`}
-                        disabled={!canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || isLoading || isModalLoading}
+                        disabled={!canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date) || isLoading || isModalLoading}
                       >
                         {isLoading || isModalLoading
                           ? 'Enrolling...'
@@ -1216,6 +1345,8 @@ const SchedulePage: React.FC = () => {
                           ? 'Session Full'
                           : !selectedActivity.isRegistrationOpen
                           ? 'Registration Closed'
+                          : !canBookOnDate(selectedActivity.date)
+                          ? 'Daily Limit Reached'
                           : !canEnrollInMoreSessions()
                           ? 'Max enrollments reached'
                           : 'Enroll Now'
