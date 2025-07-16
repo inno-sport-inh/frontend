@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { studentAPI } from '../services/studentAPI';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface MedicalReferenceModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
+
   const resetForm = () => {
     setFormData({
       startDate: '',
@@ -35,6 +39,14 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    // И только если не происходит загрузка
+    if (e.target === e.currentTarget && !isUploading) {
+      handleClose();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +123,10 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="innohassle-card bg-floating max-w-md w-full max-h-[90vh] overflow-y-auto border-2 border-secondary/50">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">

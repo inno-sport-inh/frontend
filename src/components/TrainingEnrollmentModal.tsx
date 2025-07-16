@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Clock, Users, Calendar, BookOpen } from 'lucide-react';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface TrainingEnrollmentModalProps {
   isOpen: boolean;
@@ -23,9 +24,20 @@ const TrainingEnrollmentModal: React.FC<TrainingEnrollmentModalProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedClub, setSelectedClub] = useState('');
 
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
+
   const handleSubmit = () => {
     if (selectedTime && selectedClub) {
       onConfirm(selectedClub, selectedTime);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    // И только если не происходит загрузка
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
     }
   };
 
@@ -34,7 +46,10 @@ const TrainingEnrollmentModal: React.FC<TrainingEnrollmentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onClick={handleBackdropClick}
+    >
       <div className="innohassle-card p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-contrast">Enroll in Training</h2>

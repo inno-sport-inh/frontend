@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Ruler, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { studentAPI } from '../services/studentAPI';
 import { StudentMeasurementResponse, MeasurementResult } from '../services/types';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface StudentMeasurementsModalProps {
   isOpen: boolean;
@@ -17,6 +18,9 @@ export const StudentMeasurementsModal: React.FC<StudentMeasurementsModalProps> =
   const [measurements, setMeasurements] = useState<StudentMeasurementResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,6 +44,13 @@ export const StudentMeasurementsModal: React.FC<StudentMeasurementsModalProps> =
       setError('Failed to load measurements. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    if (e.target === e.currentTarget) {
+      onClose();
     }
   };
 
@@ -72,7 +83,10 @@ export const StudentMeasurementsModal: React.FC<StudentMeasurementsModalProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="innohassle-card bg-floating max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-secondary/50">
         <div className="p-6">
           {/* Header */}

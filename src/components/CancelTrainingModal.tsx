@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, AlertTriangle, Clock, Calendar } from 'lucide-react';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface CancelTrainingModalProps {
   isOpen: boolean;
@@ -20,10 +21,24 @@ const CancelTrainingModal: React.FC<CancelTrainingModalProps> = ({
   date,
   isLoading = false
 }) => {
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
+
   if (!isOpen) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    // И только если не происходит загрузка
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onClick={handleBackdropClick}
+    >
       <div className="innohassle-card p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">

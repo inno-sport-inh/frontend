@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Trophy, Clock, CheckCircle, Calendar } from 'lucide-react';
 import { StudentHistoryTraining, FitnessTestResult } from '../services/types';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface SemesterDetailsModalProps {
   isOpen: boolean;
@@ -19,7 +20,17 @@ const SemesterDetailsModal: React.FC<SemesterDetailsModalProps> = ({
   fitnessTest,
   loading
 }) => {
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
+
   if (!isOpen) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   const formatDate = (date: string, time: string) => {
     try {
@@ -48,7 +59,10 @@ const SemesterDetailsModal: React.FC<SemesterDetailsModalProps> = ({
   const totalHours = Array.isArray(trainings) ? trainings.reduce((sum, training) => sum + training.hours, 0) : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="bg-gradient-to-br from-floating to-primary/30 border-2 border-secondary/50 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transform transition-all duration-300 scale-100">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-secondary/50 bg-gradient-to-r from-primary/50 to-secondary/30">

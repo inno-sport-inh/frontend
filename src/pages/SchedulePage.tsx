@@ -7,6 +7,7 @@ import { MedicalReferenceModal } from '../components/MedicalReferenceModal';
 import { generateSessionId } from '../utils/sessionUtils';
 import { studentAPI } from '../services/studentAPI';
 import { studentService } from '../services/studentService';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 // Utility functions for date handling
 const getWeekStart = (date: Date) => {
@@ -281,6 +282,13 @@ const SchedulePage: React.FC = () => {
   });
   const [studentPercentile, setStudentPercentile] = useState(85);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+
+  // Добавляем поддержку закрытия Activity Details Modal по Escape
+  useModalKeyboard(isModalOpen, () => {
+    setIsModalOpen(false);
+    setSelectedActivity(null);
+    setIsModalLoading(false);
+  });
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -1114,7 +1122,7 @@ const SchedulePage: React.FC = () => {
           <div className="hidden sm:block fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
           
           {/* Mobile background */}
-          <div className="block sm:hidden fixed inset-0 bg-pagebg" />
+          <div className="block sm:hidden fixed inset-0 bg-pagebg" onClick={closeModal} />
           
           <div className="bg-pagebg max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-10 rounded-3xl shadow-2xl border-2 border-secondary/30 transform transition-all duration-300 scale-100">
             {/* Enhanced modal content */}

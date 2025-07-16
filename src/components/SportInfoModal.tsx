@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Clock, Users, MapPin, Trophy, Target } from 'lucide-react';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 
 interface SportInfoModalProps {
   isOpen: boolean;
@@ -8,7 +9,17 @@ interface SportInfoModalProps {
 }
 
 const SportInfoModal: React.FC<SportInfoModalProps> = ({ isOpen, onClose, sportName }) => {
+  // Добавляем поддержку закрытия по Escape
+  useModalKeyboard(isOpen, onClose);
+
   if (!isOpen) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   const getSportInfo = (sport: string) => {
     const sportData: Record<string, any> = {
@@ -109,7 +120,10 @@ const SportInfoModal: React.FC<SportInfoModalProps> = ({ isOpen, onClose, sportN
   const sportInfo = getSportInfo(sportName);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="innohassle-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-secondary">
