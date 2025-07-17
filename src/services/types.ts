@@ -8,6 +8,7 @@ export interface StudentProfile {
   required_hours: number;
   self_sport_hours: number;
   debt: number;
+  user_status?: string; // Добавляем поле для статуса пользователя (superuser, student, etc.)
 }
 
 export interface WeeklyScheduleTraining {

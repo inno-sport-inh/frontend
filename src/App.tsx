@@ -24,7 +24,7 @@ function App() {
           <Route path="/" element={<SchedulePage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/clubs" element={<ClubsPage />} />
-          <Route path="/club/:clubName" element={<ClubPage />} />
+          <Route path="/club/:clubId" element={<ClubPage />} />
           <Route path="/history" element={<HistoryPage />} />
             <Route path="/faq" element={<FAQPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

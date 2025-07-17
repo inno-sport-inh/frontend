@@ -26,11 +26,12 @@ export const studentService = {
         id: '1',
         name: 'Mock Student',
         email: 'student@innopolis.university',
-        medical_group: 'Basic',
+        medical_group: 'General',
         hours: 12,
         required_hours: 30,
         self_sport_hours: 0,
-        debt: 0
+        debt: 0,
+        user_status: 'student'
       };
     }
   },

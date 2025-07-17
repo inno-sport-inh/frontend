@@ -1,4 +1,4 @@
-import { Activity, Club, FAQ, UserStats } from '../types';
+import { Activity, FAQ, UserStats } from '../types';
 
 // Mock data with weekly schedule and participant limits
 export const mockWeeklyActivities: Activity[] = [
@@ -260,33 +260,6 @@ export const mockWeeklyActivities2: Activity[] = [
     isRegistrationOpen: true,
     groupId: 15,
     trainingId: 35
-  },
-];
-
-export const mockClubs: Club[] = [
-  { 
-    id: 1, 
-    name: "Table Tennis", 
-    description: "Join our table tennis club for exciting matches and skill development. All levels welcome!", 
-    image: "/placeholder-table-tennis.jpg" 
-  },
-  { 
-    id: 2, 
-    name: "Football", 
-    description: "Experience the thrill of football with our dedicated team. Regular training sessions and matches.", 
-    image: "/placeholder-football.jpg" 
-  },
-  { 
-    id: 3, 
-    name: "Basketball", 
-    description: "Shoot hoops and improve your game with our basketball club. Team practice twice a week.", 
-    image: "/placeholder-basketball.jpg" 
-  },
-  { 
-    id: 4, 
-    name: "Volleyball", 
-    description: "Spike, set, and serve with our volleyball team. Indoor and beach volleyball available.", 
-    image: "/placeholder-volleyball.jpg" 
   },
 ];
 

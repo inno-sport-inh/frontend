@@ -13,13 +13,6 @@ export interface Activity {
   trainingId: number;
 }
 
-export interface Club {
-  id: number;
-  name: string;
-  description: string;
-  image: string;
-}
-
 export interface FAQ {
   id: number;
   question: string;

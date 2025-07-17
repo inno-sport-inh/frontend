@@ -103,6 +103,8 @@ export const formatSessionDate = (date: Date): string => {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
   
   const isToday = date.toDateString() === today.toDateString();
   const isTomorrow = date.toDateString() === tomorrow.toDateString();
