@@ -1,14 +1,45 @@
 // New Student Weekly Schedule API Types
-export interface StudentProfile {
-  id: string;
+export interface StudentStatus {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export interface StudentInfo {
+  id: number;
   name: string;
   email: string;
   medical_group: string;
+  student_status: StudentStatus;
   hours: number;
-  required_hours: number;
-  self_sport_hours: number;
   debt: number;
-  user_status?: string; // Добавляем поле для статуса пользователя (superuser, student, etc.)
+  self_sport_hours: number;
+  required_hours: number;
+}
+
+export interface TrainerInfo {
+  id: number;
+  name: string;
+  email: string;
+  groups: any[]; // Тип групп тренера будет уточнен позже
+}
+
+export interface StudentProfile {
+  user_id: string;
+  user_statuses: string[];
+  student_info?: StudentInfo;
+  trainer_info?: TrainerInfo;
+  
+  // Совместимость со старым API - для обратной совместимости
+  id?: string;
+  name?: string;
+  email?: string;
+  medical_group?: string;
+  hours?: number;
+  required_hours?: number;
+  self_sport_hours?: number;
+  debt?: number;
+  user_status?: string;
 }
 
 export interface WeeklyScheduleTraining {
@@ -174,6 +205,46 @@ export interface MedicalReferenceUpload {
   start: string;
   end: string;
   student_comment?: string;
+}
+
+export interface MedicalReferenceUploadResponse {
+  message: string;
+  reference_id: number;
+  hours: number;
+  start: string;
+  end: string;
+  uploaded: string;
+}
+
+export interface MedicalReferenceErrorResponse {
+  code: number;
+  detail: string;
+}
+
+// Self-Sport Types
+export interface SelfSportUploadRequest {
+  link: string;
+  hours: number;
+  training_type: number;
+  student_comment?: string;
+  parsed_data?: any;
+}
+
+export interface SelfSportUploadResponse {
+  message?: string;
+  // API возвращает пустое тело при успехе (200)
+}
+
+export interface SelfSportErrorResponse {
+  code: number;
+  detail: string;
+}
+
+export interface TrainingType {
+  id: number;
+  name: string;
+  is_active: boolean;
+  max_hours?: number;
 }
 
 // Fitness Test Types

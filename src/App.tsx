@@ -7,6 +7,8 @@ import HistoryPage from './pages/HistoryPage';
 import FAQPage from "./pages/FAQPage.tsx";
 import ClubPage from "./pages/ClubPage.tsx";
 import ClubsPage from "./pages/ClubsPage.tsx";
+import FitnessTestPage from "./pages/FitnessTestPage.tsx";
+import AdminPage from "./pages/AdminPage.tsx";
 
 function App() {
   const { isLoading, loadUserProfile } = useAppStore();
@@ -26,7 +28,9 @@ function App() {
           <Route path="/clubs" element={<ClubsPage />} />
           <Route path="/club/:clubId" element={<ClubPage />} />
           <Route path="/history" element={<HistoryPage />} />
-            <Route path="/faq" element={<FAQPage />} />
+          <Route path="/fitness-test" element={<FitnessTestPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/faq" element={<FAQPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

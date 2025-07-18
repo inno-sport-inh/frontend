@@ -1,26 +1,34 @@
 import React, { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ExternalLink } from 'lucide-react';
 import { studentAPI } from '../services/studentAPI';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
-import { MedicalReferenceUploadResponse } from '../services/types';
+import { SelfSportUploadResponse } from '../services/types';
 
-interface MedicalReferenceModalProps {
+interface SelfSportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (response: MedicalReferenceUploadResponse) => void;
+  onSuccess?: (response: SelfSportUploadResponse) => void;
 }
 
-export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
+// Типы тренировок из API документации
+const TRAINING_TYPES = [
+  { id: 5, name: 'Swimming', is_active: true },
+  { id: 4, name: 'Walking', is_active: true },
+  { id: 2, name: 'Biking', is_active: true },
+  { id: 1, name: 'Running', is_active: true },
+];
+
+export const SelfSportModal: React.FC<SelfSportModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
 }) => {
   const [formData, setFormData] = useState({
-    startDate: '',
-    endDate: '',
+    link: '',
+    hours: 1,
+    trainingType: 1, // Default to Running
     studentComment: '',
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -29,11 +37,11 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
 
   const resetForm = () => {
     setFormData({
-      startDate: '',
-      endDate: '',
+      link: '',
+      hours: 1,
+      trainingType: 1,
       studentComment: '',
     });
-    setSelectedFile(null);
     setErrors([]);
   };
 
@@ -43,51 +51,28 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
-    // И только если не происходит загрузка
     if (e.target === e.currentTarget && !isUploading) {
       handleClose();
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        setErrors(['Please select an image file (JPEG, JPG, PNG)']);
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(['File size must not exceed 5MB']);
-        return;
-      }
-      
-      setSelectedFile(file);
-      setErrors([]);
     }
   };
 
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
 
-    if (!selectedFile) {
-      newErrors.push('Please select a medical reference file');
+    if (!formData.link.trim()) {
+      newErrors.push('Please provide a link to your activity (Strava, TrainingPeaks, etc.)');
     }
 
-    if (!formData.startDate) {
-      newErrors.push('Please specify the start date of illness');
+    if (!formData.link.startsWith('http://') && !formData.link.startsWith('https://')) {
+      newErrors.push('Link must start with http:// or https://');
     }
 
-    if (!formData.endDate) {
-      newErrors.push('Please specify the end date of illness');
+    if (formData.hours <= 0 || formData.hours > 10) {
+      newErrors.push('Hours must be between 1 and 10');
     }
 
-    if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
-      newErrors.push('Start date cannot be later than end date');
+    if (!formData.trainingType) {
+      newErrors.push('Please select a training type');
     }
 
     setErrors(newErrors);
@@ -103,10 +88,10 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
 
     setIsUploading(true);
     try {
-      const response = await studentAPI.uploadMedicalReference(
-        selectedFile!,
-        formData.startDate,
-        formData.endDate,
+      const response = await studentAPI.uploadSelfSportActivity(
+        formData.link,
+        formData.hours,
+        formData.trainingType,
         formData.studentComment || undefined
       );
 
@@ -114,8 +99,8 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
       handleClose();
       onSuccess?.(response);
     } catch (error) {
-      console.error('Error uploading medical reference:', error);
-      setErrors(['Error uploading medical reference. Please try again.']);
+      console.error('Error uploading self-sport activity:', error);
+      setErrors(['Error uploading self-sport activity. Please try again.']);
     } finally {
       setIsUploading(false);
     }
@@ -133,14 +118,14 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-xl font-bold text-contrast mb-2">
-                Medical Reference Submission
+                Self-Sport Activity Upload
               </h2>
               <p className="text-inactive text-sm leading-relaxed mb-3">
-                Please submit an image of the medical reference. Specify the range of dates (illness period) and leave comments if necessary.
+                Submit your self-sport activity with a link to Strava, TrainingPeaks, or similar platforms.
               </p>
-              <div className="p-3 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 rounded-lg border border-brand-violet/20">
+              <div className="p-3 bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-lg border border-blue-500/20">
                 <p className="text-sm text-contrast font-medium">
-                  ℹ️ The week missed due to illness is compensated by two sports hours.
+                  🏃 Maximum 10 hours of self-sport per semester allowed.
                 </p>
               </div>
             </div>
@@ -169,44 +154,43 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* File Upload */}
+            {/* Activity Link */}
             <div>
               <label className="block text-sm font-semibold text-contrast mb-3">
-                Reference *
+                Activity Link *
               </label>
               <div className="relative">
                 <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png"
-                  onChange={handleFileChange}
+                  type="url"
+                  value={formData.link}
+                  onChange={(e) =>
+                    setFormData({ ...formData, link: e.target.value })
+                  }
                   disabled={isUploading}
-                  className="w-full p-3 bg-primary border-2 border-secondary rounded-lg 
+                  placeholder="https://www.strava.com/activities/..."
+                  className="w-full p-3 pr-10 bg-primary border-2 border-secondary rounded-lg 
                            text-contrast placeholder-inactive
                            focus:border-brand-violet focus:ring-2 focus:ring-brand-violet/20 
-                           file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-                           file:text-sm file:font-medium file:bg-brand-violet/10 file:text-brand-violet
-                           hover:file:bg-brand-violet/20 disabled:opacity-50 transition-all duration-200"
+                           disabled:opacity-50 transition-all duration-200"
                   required
                 />
+                <ExternalLink size={18} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-inactive" />
               </div>
-              {selectedFile && (
-                <p className="text-sm text-inactive mt-2 bg-secondary/30 p-2 rounded">
-                  Selected file: <span className="text-contrast font-medium">{selectedFile.name}</span>
-                </p>
-              )}
+              <p className="text-xs text-inactive mt-2">
+                Link to your activity on Strava, TrainingPeaks, or similar platform
+              </p>
             </div>
 
-            {/* Date Range */}
+            {/* Training Type and Hours */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-contrast mb-3">
-                  Start Date *
+                  Training Type *
                 </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
+                <select
+                  value={formData.trainingType}
                   onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
+                    setFormData({ ...formData, trainingType: Number(e.target.value) })
                   }
                   disabled={isUploading}
                   className="w-full p-3 bg-primary border-2 border-secondary rounded-lg 
@@ -214,17 +198,25 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
                            focus:border-brand-violet focus:ring-2 focus:ring-brand-violet/20 
                            disabled:opacity-50 transition-all duration-200"
                   required
-                />
+                >
+                  {TRAINING_TYPES.filter(type => type.is_active).map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-contrast mb-3">
-                  End Date *
+                  Hours *
                 </label>
                 <input
-                  type="date"
-                  value={formData.endDate}
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.hours}
                   onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
+                    setFormData({ ...formData, hours: Number(e.target.value) })
                   }
                   disabled={isUploading}
                   className="w-full p-3 bg-primary border-2 border-secondary rounded-lg 
@@ -248,7 +240,7 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
                 }
                 rows={3}
                 disabled={isUploading}
-                placeholder="Additional information about the medical reference..."
+                placeholder="Additional information about your activity..."
                 className="w-full p-3 bg-primary border-2 border-secondary rounded-lg 
                          text-contrast placeholder-inactive
                          focus:border-brand-violet focus:ring-2 focus:ring-brand-violet/20 
@@ -280,7 +272,7 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
                     Uploading...
                   </>
                 ) : (
-                  'Submit Reference'
+                  'Submit Activity'
                 )}
               </button>
             </div>
@@ -289,4 +281,4 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
       </div>
     </div>
   );
-};
+}; 

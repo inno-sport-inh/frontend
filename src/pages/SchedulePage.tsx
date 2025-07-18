@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
 import { MedicalReferenceModal } from '../components/MedicalReferenceModal';
+import { SelfSportModal } from '../components/SelfSportModal';
 import { generateSessionId } from '../utils/sessionUtils';
 import { studentAPI } from '../services/studentAPI';
 import { studentService } from '../services/studentService';
@@ -212,6 +213,8 @@ const SchedulePage: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showMedicalModal, setShowMedicalModal] = useState(false);
   const [dailyLimitError, setDailyLimitError] = useState<string>('');
+  const [medicalReferenceSuccess, setMedicalReferenceSuccess] = useState<string>('');
+  const [showSelfSportModal, setShowSelfSportModal] = useState(false);
   
   // Local function to check if user is enrolled in activity
   const isEnrolled = (activityId: string) => {
@@ -598,6 +601,27 @@ const SchedulePage: React.FC = () => {
         </div>
       )}
 
+      {/* Medical Reference Success Message */}
+      {medicalReferenceSuccess && (
+        <div className="innohassle-card p-4 bg-gradient-to-r from-success-500/10 to-success-500/5 border-2 border-success-500/30 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-success-500/20 rounded-xl flex items-center justify-center">
+              <CheckCircle size={20} className="text-success-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-success-500">Medical Certificate Uploaded</h3>
+              <p className="text-sm text-success-500/80">{medicalReferenceSuccess}</p>
+            </div>
+            <button
+              onClick={() => setMedicalReferenceSuccess('')}
+              className="ml-auto w-8 h-8 flex items-center justify-center bg-success-500/20 hover:bg-success-500/30 rounded-lg transition-colors text-success-500"
+            >
+              <span className="text-lg">×</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Progress Header */}
       <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
         {/* Background decoration */}
@@ -612,15 +636,17 @@ const SchedulePage: React.FC = () => {
               </div>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-              {studentProfile ? `${studentProfile.name}'s Sport Progress` : 'Your Sport Progress'}
+              {studentProfile ? `${studentProfile.student_info?.name || studentProfile.name || 'User'}'s Sport Progress` : 'Your Sport Progress'}
             </h2>
             
             {/* Титул пользователя */}
-            {studentProfile && studentProfile.medical_group && (
+            {studentProfile && (studentProfile.student_info?.medical_group || studentProfile.medical_group) && (
               <div className="mb-3">
                 <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-brand-violet to-brand-violet/80">
                   <span className="text-sm">🏥</span>
-                  <span className="text-white text-sm font-medium">{studentProfile.medical_group}</span>
+                  <span className="text-white text-sm font-medium">
+                    {studentProfile.student_info?.medical_group || studentProfile.medical_group}
+                  </span>
                 </div>
               </div>
             )}
@@ -794,7 +820,7 @@ const SchedulePage: React.FC = () => {
             <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
               <span className="text-lg">🎯</span>
               <span className="text-sm font-bold text-success-500">
-                Top {100 - studentPercentile}% Performer
+                Top {studentPercentile}% Performer
               </span>
             </div>
             
@@ -850,14 +876,25 @@ const SchedulePage: React.FC = () => {
           </div>
           
           {/* Medical Reference Button */}
-          <button
-            onClick={() => setShowMedicalModal(true)}
-            className="innohassle-button-primary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105"
-          >
-            <FileText size={16} />
-            <span className="hidden sm:inline">Medical Reference</span>
-            <span className="sm:hidden">Medical</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowMedicalModal(true)}
+              className="innohassle-button-primary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+            >
+              <FileText size={16} />
+              <span className="hidden sm:inline">Medical Reference</span>
+              <span className="sm:hidden">Medical</span>
+            </button>
+            
+            <button
+              onClick={() => setShowSelfSportModal(true)}
+              className="innohassle-button-secondary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105 border-2 border-blue-500/30 hover:border-blue-500/50"
+            >
+              <Activity size={16} />
+              <span className="hidden sm:inline">Self-Sport</span>
+              <span className="sm:hidden">Sport</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1180,9 +1217,25 @@ const SchedulePage: React.FC = () => {
       <MedicalReferenceModal
         isOpen={showMedicalModal}
         onClose={() => setShowMedicalModal(false)}
-        onSuccess={() => {
-          // Можно добавить уведомление об успешной загрузке
-          console.log('Medical reference uploaded successfully');
+        onSuccess={(response) => {
+          // Показываем подробную информацию о загруженной справке
+          console.log('Medical reference uploaded successfully:', response);
+          const message = `Medical certificate uploaded! Reference ID: ${response.reference_id}. Hours credited: ${response.hours}. Period: ${new Date(response.start).toLocaleDateString()} - ${new Date(response.end).toLocaleDateString()}`;
+          setMedicalReferenceSuccess(message);
+          setTimeout(() => setMedicalReferenceSuccess(''), 10000);
+        }}
+      />
+
+      {/* Self-Sport Modal */}
+      <SelfSportModal
+        isOpen={showSelfSportModal}
+        onClose={() => setShowSelfSportModal(false)}
+        onSuccess={(response) => {
+          // Показываем уведомление об успешной загрузке self-sport активности
+          console.log('Self-sport activity uploaded successfully:', response);
+          const message = `Self-sport activity uploaded successfully! Your activity has been submitted for review.`;
+          setMedicalReferenceSuccess(message); // Используем то же состояние для уведомлений
+          setTimeout(() => setMedicalReferenceSuccess(''), 8000);
         }}
       />
 

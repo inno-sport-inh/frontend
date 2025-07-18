@@ -1,5 +1,5 @@
 import apiRequest from './api';
-import { WeeklyScheduleResponse, StudentProfile, StudentHours, FitnessTestResult, Semester, StudentHistoryTraining, StudentSemesterHistory, MeasurementUploadRequest, MeasurementUploadResponse, StudentMeasurementResponse } from './types';
+import { WeeklyScheduleResponse, StudentProfile, StudentHours, FitnessTestResult, Semester, StudentHistoryTraining, StudentSemesterHistory, MeasurementUploadRequest, MeasurementUploadResponse, StudentMeasurementResponse, MedicalReferenceUploadResponse, SelfSportUploadResponse } from './types';
 
 // Student API for new endpoints
 export const studentAPI = {
@@ -20,16 +20,6 @@ export const studentAPI = {
     console.log('📊 Getting student hours for ID:', studentId);
     const result = await apiRequest<StudentHours>(`/attendance/${studentId}/hours`);
     console.log('✅ Student hours received:', result);
-    return result;
-  },
-
-  /**
-   * Get student performance percentile
-   */
-  getStudentPercentile: async (studentId: string): Promise<{ percentile: number }> => {
-    console.log('📈 Getting student percentile for ID:', studentId);
-    const result = await apiRequest<{ percentile: number }>(`/attendance/${studentId}/better_than`);
-    console.log('✅ Student percentile received:', result);
     return result;
   },
 
@@ -92,7 +82,7 @@ export const studentAPI = {
     startDate: string,
     endDate: string,
     studentComment?: string
-  ): Promise<void> => {
+  ): Promise<MedicalReferenceUploadResponse> => {
     console.log('📋 Uploading medical reference...');
     
     const formData = new FormData();
@@ -103,15 +93,14 @@ export const studentAPI = {
       formData.append('student_comment', studentComment);
     }
     
-    await apiRequest<void>('/references/upload', {
+    const result = await apiRequest<MedicalReferenceUploadResponse>('/references/upload', {
       method: 'POST',
       body: formData,
-      headers: {
-        // Не добавляем Content-Type, браузер сам установит для multipart/form-data
-      },
+      // Не устанавливаем headers для FormData - браузер сам добавит multipart/form-data
     });
     
     console.log('✅ Medical reference uploaded successfully');
+    return result;
   },
 
   /**
@@ -203,5 +192,52 @@ export const studentAPI = {
     console.log('🔍 Filtered to semesters with trainings:', semestersWithTrainings.length, 'out of', result.length);
     
     return semestersWithTrainings;
+  },
+
+  /**
+   * Get student performance percentile
+   */
+  getStudentPercentile: async (studentId: string): Promise<number> => {
+    console.log('📈 Getting student percentile for ID:', studentId);
+    const result = await apiRequest<number>(`/students/${studentId}/better-than`);
+    console.log('✅ Student percentile received:', result);
+    return result;
+  },
+
+  /**
+   * Upload self-sport activity
+   * @param link - Link to Strava, TrainingPeaks, or similar platform
+   * @param hours - Number of hours
+   * @param trainingType - Training type ID
+   * @param studentComment - Optional comment from student
+   * @param parsedData - Optional parsed data
+   */
+  uploadSelfSportActivity: async (
+    link: string,
+    hours: number,
+    trainingType: number,
+    studentComment?: string,
+    parsedData?: any
+  ): Promise<SelfSportUploadResponse> => {
+    console.log('🏃 Uploading self-sport activity...');
+    
+    const formData = new FormData();
+    formData.append('link', link);
+    formData.append('hours', hours.toString());
+    formData.append('training_type', trainingType.toString());
+    if (studentComment) {
+      formData.append('student_comment', studentComment);
+    }
+    if (parsedData) {
+      formData.append('parsed_data', JSON.stringify(parsedData));
+    }
+    
+    const result = await apiRequest<SelfSportUploadResponse>('/selfsport/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    console.log('✅ Self-sport activity uploaded successfully');
+    return result;
   }
 };

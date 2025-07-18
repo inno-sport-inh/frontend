@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Clock, Calendar, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Trophy, Calendar, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { studentAPI } from '../services/studentAPI';
 import { FitnessTestResult, StudentHistoryTraining, StudentSemesterHistory } from '../services/types';
 import SemesterDetailsModal from '../components/SemesterDetailsModal';
@@ -59,9 +59,6 @@ const HistoryPage: React.FC = () => {
     setModalTrainings([]);
   };
 
-  const getPassedFitnessTests = () => fitnessTests.filter(test => test.grade).length;
-  const getTotalHours = () => semesterHistory.reduce((sum: number, semester: StudentSemesterHistory) => sum + semester.total_hours, 0);
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
@@ -106,48 +103,6 @@ const HistoryPage: React.FC = () => {
         </div>
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-violet/10 to-transparent rounded-full blur-xl"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-brand-violet/10 to-transparent rounded-full blur-xl"></div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Total Hours */}
-        <div className="group innohassle-card p-4 bg-gradient-to-br from-floating to-primary/30 border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl border border-brand-violet/20">
-              <Clock className="text-brand-violet" size={24} />
-            </div>
-            <div>
-              <div className="text-sm text-inactive">Total Hours</div>
-              <div className="text-2xl font-bold text-brand-violet">{getTotalHours()}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fitness Tests Passed */}
-        <div className="group innohassle-card p-4 bg-gradient-to-br from-floating to-primary/30 border-2 border-secondary/30 hover:border-success-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-success-500/10 hover:-translate-y-1 transform">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-gradient-to-br from-success-500/20 to-success-500/10 rounded-xl border border-success-500/20">
-              <Trophy className="text-success-500" size={24} />
-            </div>
-            <div>
-              <div className="text-sm text-inactive">Fitness Tests Passed</div>
-              <div className="text-2xl font-bold text-success-500">{getPassedFitnessTests()}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Semesters */}
-        <div className="group innohassle-card p-6 bg-gradient-to-br from-floating to-primary/30 border-2 border-secondary/30 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1 transform">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl border border-blue-500/20">
-              <Calendar className="text-blue-500" size={24} />
-            </div>
-            <div>
-              <div className="text-sm text-inactive">Active Semesters</div>
-              <div className="text-2xl font-bold text-blue-500">{semesterHistory.length}</div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Fitness Tests History */}

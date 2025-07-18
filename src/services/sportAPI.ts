@@ -2,7 +2,6 @@ import apiRequest from './api';
 import {
   CalendarTraining,
   StudentHours,
-  BetterThanResponse,
   NegativeHoursResponse,
   AnalyticsAttendanceResponse,
   AttendanceReportResponse,
@@ -41,14 +40,6 @@ export const attendanceAPI = {
    */
   getGroupAttendanceReport: async (groupId: number): Promise<AttendanceReportResponse> => {
     return apiRequest<AttendanceReportResponse>(`/attendance/${groupId}/report`);
-  },
-
-  /**
-   * Get student's performance percentile
-   * @param studentId - Student ID
-   */
-  getStudentPerformancePercentile: async (studentId: number): Promise<BetterThanResponse> => {
-    return apiRequest<BetterThanResponse>(`/attendance/${studentId}/better_than`);
   },
 
   /**

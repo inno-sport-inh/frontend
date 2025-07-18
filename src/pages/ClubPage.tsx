@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Users, Clock, CheckCircle, Loader2, AlertC
 import { useAppStore } from '../store/useAppStore';
 import { generateSessionId, formatSessionDate } from '../utils/sessionUtils';
 import { clubsAPI, Club, ClubGroup } from '../services/api';
+import { studentAPI } from '../services/studentAPI';
 
 const ClubPage: React.FC = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -12,6 +13,8 @@ const ClubPage: React.FC = () => {
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     const fetchClub = async () => {
@@ -38,16 +41,56 @@ const ClubPage: React.FC = () => {
     }
   }, [clubId]);
 
-  const handleEnrollment = async (sessionId: string) => {
+  const handleEnrollment = async (sessionId: string, trainingId?: number) => {
     setEnrollmentLoading(sessionId);
+    setErrorMessage('');
+    setSuccessMessage('');
+    
     try {
-      if (isEnrolled(sessionId)) {
-        await cancelEnrollment(sessionId);
+      if (trainingId) {
+        // Find session in upcomingSessions to determine if user is already enrolled
+        const sessions = getUpcomingSessions(club?.groups || [], club?.name);
+        const session = sessions.find(s => s.id === sessionId);
+        
+        if (session?.isEnrolled) {
+          await studentAPI.cancelCheckIn(trainingId);
+          setSuccessMessage('You have successfully cancelled your training enrollment!');
+        } else {
+          // Check daily limit before enrollment
+          if (!canBookOnDate(session?.sessionDate)) {
+            setErrorMessage('You cannot enroll in more than 2 trainings per day.');
+            setTimeout(() => setErrorMessage(''), 5000);
+            return;
+          }
+          
+          await studentAPI.checkIn(trainingId);
+          setSuccessMessage('You have successfully enrolled in the training!');
+        }
+        
+        // Update club data after enrollment/cancellation
+        const clubsData = await clubsAPI.getClubs();
+        const updatedClub = clubsData.find(c => c.id.toString() === clubId);
+        if (updatedClub) {
+          setClub(updatedClub);
+        }
+        
+        // Remove messages after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage('');
+          setErrorMessage('');
+        }, 3000);
       } else {
-        await enrollInSession(sessionId);
+        // Fallback to old logic if no trainingId
+        if (isEnrolled(sessionId)) {
+          await cancelEnrollment(sessionId);
+        } else {
+          await enrollInSession(sessionId);
+        }
       }
     } catch (error) {
       console.error('Enrollment error:', error);
+      setErrorMessage('Error during enrollment/cancellation. Please try again.');
+      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setEnrollmentLoading(null);
     }
@@ -56,80 +99,140 @@ const ClubPage: React.FC = () => {
   const getUpcomingSessions = (groups: ClubGroup[], clubName?: string) => {
     const now = new Date();
     const upcomingSessions: any[] = [];
-    const oneWeekFromNow = new Date(now);
-    oneWeekFromNow.setDate(now.getDate() + 7);
     
-    // Generate next 4 weeks of sessions for all groups
+    // Process all club groups
     groups.forEach(group => {
-      group.schedule.forEach(session => {
-        for (let week = 0; week < 4; week++) {
-          // Правильно вычисляем дату следующей тренировки
-          const sessionDate = new Date();
-          const currentDay = now.getDay(); // 0 = воскресенье, 1 = понедельник, и т.д.
-          const targetDay = session.weekday; // день недели из API
-          
-          // Вычисляем разность дней до целевого дня недели
-          let daysUntilTarget = targetDay - currentDay;
-          if (daysUntilTarget < 0) {
-            daysUntilTarget += 7; // если день уже прошёл на этой неделе
-          }
-          
-          // Если это сегодня, но время уже прошло, переносим на следующую неделю
-          if (daysUntilTarget === 0) {
-            const [hours, minutes] = session.start_time.split(':').map(Number);
-            const sessionTime = new Date(now);
-            sessionTime.setHours(hours, minutes, 0, 0);
-            
-            if (sessionTime <= now) {
-              daysUntilTarget = 7; // переносим на следующую неделю
-            }
-          }
-          
-          // Добавляем дни для нужной недели
-          sessionDate.setDate(now.getDate() + daysUntilTarget + (week * 7));
-          
-          // Устанавливаем время тренировки
-          const [hours, minutes] = session.start_time.split(':').map(Number);
-          sessionDate.setHours(hours, minutes, 0, 0);
-          
-          // Пропускаем прошедшие сессии
-          if (sessionDate <= now) {
-            continue;
-          }
-          
-          const sessionId = generateSessionId(
-            group.name, // используем имя группы для ID
-            session.weekday_name,
-            session.start_time,
-            sessionDate
-          );
-          
-          // Проверяем, можно ли записаться (только в пределах недели)
-          const canEnroll = sessionDate <= oneWeekFromNow;
-          
-          upcomingSessions.push({
-            id: sessionId,
-            group: group,
-            schedule: session,
-            date: sessionDate,
-            isEnrolled: isEnrolled(sessionId),
-            activity: group.name, // название группы как основная активность
-            time: `${session.start_time} - ${session.end_time}`,
-            day: session.weekday_name,
-            location: session.training_class || 'Training Hall', // место из training_class
-            trainer: group.trainers?.[0]?.name || 'TBD',
-            groupName: group.name,
-            clubName: clubName, // добавляем название клуба для контекста
-            canEnroll: canEnroll // флаг для возможности записи
-          });
+      // Check if group has trainings
+      if (!group.trainings || !Array.isArray(group.trainings)) {
+        return;
+      }
+      
+      // Process existing trainings from API
+      group.trainings.forEach(training => {
+        const sessionDate = new Date(training.start);
+        const sessionEndDate = new Date(training.end);
+        
+        // Check that training hasn't passed yet
+        if (sessionEndDate <= now) {
+          return;
         }
+        
+        // Check if registration is possible (one week before training)
+        const registrationOpenTime = new Date(sessionDate);
+        registrationOpenTime.setDate(sessionDate.getDate() - 7);
+        const canRegister = now >= registrationOpenTime && training.can_check_in;
+        
+        const sessionId = generateSessionId(
+          group.name || `${clubName} Group`,
+          sessionDate.toLocaleDateString('en-US', { weekday: 'long' }),
+          `${sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${sessionEndDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+          sessionDate
+        );
+        
+        upcomingSessions.push({
+          id: sessionId,
+          trainingId: training.id,
+          groupId: group.id,
+          groupName: group.name || `${clubName} Group`,
+          sessionDate,
+          startTime: sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          endTime: sessionEndDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          location: training.training_class || 'TBA',
+          capacity: training.capacity,
+          enrolled: training.participants.total_checked_in,
+          availableSpots: training.available_spots,
+          canRegister,
+          isEnrolled: training.checked_in,
+          dayOfWeek: sessionDate.toLocaleDateString('en-US', { weekday: 'long' }),
+          isPast: sessionEndDate <= now
+        });
       });
     });
     
-    return upcomingSessions.sort((a, b) => a.date.getTime() - b.date.getTime());
+    return upcomingSessions
+      .sort((a, b) => a.sessionDate.getTime() - b.sessionDate.getTime())
+      .slice(0, 20); // Show up to 20 upcoming trainings
   };
 
-  // Получаем эмодзи для клуба на основе названия
+  // Function to count booked sessions on a specific date
+  const getBookedSessionsOnDate = (targetDate: Date) => {
+    const targetDateString = targetDate.toDateString();
+    const allSessions = getUpcomingSessions(club?.groups || [], club?.name);
+    
+    const bookedSessions = allSessions.filter(session => {
+      const sessionDateString = session.sessionDate.toDateString();
+      const isBooked = session.isEnrolled;
+      const isSameDate = sessionDateString === targetDateString;
+      return isSameDate && isBooked;
+    });
+    
+    return bookedSessions.length;
+  };
+
+  // Function to check if you can book a training on this day
+  const canBookOnDate = (targetDate: Date) => {
+    const bookedCount = getBookedSessionsOnDate(targetDate);
+    return bookedCount < 2;
+  };
+
+  // Function to get session status
+  const getSessionStatus = (session: any) => {
+    const now = new Date();
+    
+    // Training is considered past if start time has passed
+    if (session.sessionDate <= now) return 'past';
+    if (session.isEnrolled) return 'enrolled';
+    if (session.availableSpots <= 0) return 'full';
+    if (!session.canRegister) return 'closed';
+    
+    // Check daily limit only for trainings that can be registered for
+    if (session.canRegister && !canBookOnDate(session.sessionDate)) return 'daily-limit';
+    
+    return 'available';
+  };
+
+  // Function to get status styles
+  const getSessionStatusStyles = (status: string) => {
+    switch (status) {
+      case 'enrolled':
+        return {
+          border: 'border-brand-violet/50 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5',
+          text: 'text-contrast'
+        };
+      case 'available':
+        return {
+          border: 'border-success-500/30 bg-gradient-to-r from-success-500/10 to-success-500/5 hover:border-success-500/50',
+          text: 'text-contrast'
+        };
+      case 'full':
+        return {
+          border: 'border-error-500/30 bg-gradient-to-r from-error-500/10 to-error-500/5',
+          text: 'text-contrast'
+        };
+      case 'daily-limit':
+        return {
+          border: 'border-warning-500/30 bg-gradient-to-r from-warning-500/10 to-warning-500/5',
+          text: 'text-contrast'
+        };
+      case 'closed':
+        return {
+          border: 'border-secondary/30 bg-gradient-to-r from-secondary/20 to-secondary/10',
+          text: 'text-inactive'
+        };
+      case 'past':
+        return {
+          border: 'border-secondary/20 bg-gradient-to-r from-secondary/10 to-secondary/5',
+          text: 'text-inactive opacity-60'
+        };
+      default:
+        return {
+          border: 'border-secondary hover:border-brand-violet/30',
+          text: 'text-contrast'
+        };
+    }
+  };
+
+  // Get emoji for club based on name
   const getClubEmoji = (name: string): string => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes('table tennis') || lowerName.includes('настольный теннис')) return '🏓';
@@ -198,6 +301,25 @@ const ClubPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="innohassle-card p-4 bg-gradient-to-r from-success-500/10 to-success-500/5 border-2 border-success-500/30">
+          <div className="flex items-center space-x-3">
+            <CheckCircle size={20} className="text-success-500" />
+            <span className="text-success-500 font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
+      
+      {errorMessage && (
+        <div className="innohassle-card p-4 bg-gradient-to-r from-error-500/10 to-error-500/5 border-2 border-error-500/30">
+          <div className="flex items-center space-x-3">
+            <AlertCircle size={20} className="text-error-500" />
+            <span className="text-error-500 font-medium">{errorMessage}</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <Link
@@ -230,22 +352,19 @@ const ClubPage: React.FC = () => {
           <div className="innohassle-card p-6">
             <h2 className="text-xl font-bold text-contrast mb-6">Training Groups</h2>
             <div className="space-y-4">
-              {club.groups.map((group) => (
+              {club.groups.map((group, index) => (
                 <div key={group.id} className="border border-secondary rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h3 className="font-semibold text-contrast">{group.name}</h3>
+                      <h3 className="text-lg font-semibold text-contrast">
+                        {group.name || `Group ${index + 1}`}
+                      </h3>
                       <p className="text-sm text-inactive mt-1">{group.description}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       {group.accredited && (
                         <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
                           Accredited
-                        </span>
-                      )}
-                      {group.is_enrolled && (
-                        <span className="bg-brand-violet text-white text-xs px-2 py-1 rounded">
-                          Enrolled
                         </span>
                       )}
                     </div>
@@ -262,7 +381,7 @@ const ClubPage: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Target size={16} className="text-brand-violet" />
                       <span className="text-sm text-contrast">
-                        {group.free_places} free places
+                        {group.capacity - group.current_enrollment} free places
                       </span>
                     </div>
                   </div>
@@ -283,20 +402,33 @@ const ClubPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Schedule */}
-                  {group.schedule && group.schedule.length > 0 && (
+                  {/* Trainings */}
+                  {group.trainings && group.trainings.length > 0 && (
                     <div className="mb-4">
-                      <h4 className="font-medium text-contrast mb-2">Schedule:</h4>
-                      <div className="space-y-1">
-                        {group.schedule.map((session, index) => (
-                          <div key={index} className="flex items-center space-x-2 text-sm">
-                            <Clock size={14} className="text-brand-violet" />
-                            <span className="text-contrast">
-                              {session.weekday_name}: {session.start_time} - {session.end_time}
-                              {session.training_class && ` (${session.training_class})`}
-                            </span>
-                          </div>
-                        ))}
+                      <h4 className="font-medium text-contrast mb-2">Upcoming Trainings:</h4>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {group.trainings.slice(0, 3).map((training, trainingIndex) => {
+                          const startDate = new Date(training.start);
+                          const endDate = new Date(training.end);
+                          return (
+                            <div key={trainingIndex} className="flex items-center space-x-2 text-sm">
+                              <Clock size={14} className="text-brand-violet" />
+                              <span className="text-contrast">
+                                {startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}:
+                                {' '}
+                                {startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                {' - '}
+                                {endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                {training.training_class && ` (${training.training_class})`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {group.trainings.length > 3 && (
+                          <p className="text-xs text-inactive">
+                            +{group.trainings.length - 3} more trainings...
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -346,90 +478,114 @@ const ClubPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {upcomingSessions.slice(0, 10).map((session) => (
-                  <div key={session.id} className={`border rounded-lg p-4 transition-all ${
-                    session.canEnroll 
-                      ? 'border-secondary hover:border-brand-violet/30' 
-                      : 'border-gray-200 bg-gray-50/50'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        {/* Название тренировки большим шрифтом */}
-                        <div className="mb-3">
-                          <h3 className={`text-lg font-semibold ${
-                            session.canEnroll ? 'text-contrast' : 'text-gray-500'
-                          }`}>
-                            {session.activity}
-                          </h3>
-                          {session.clubName && session.clubName !== session.activity && (
-                            <p className={`text-sm mt-1 ${
-                              session.canEnroll ? 'text-inactive' : 'text-gray-400'
-                            }`}>
-                              {session.clubName}
-                            </p>
-                          )}
+                {upcomingSessions.slice(0, 10).map((session) => {
+                  const status = getSessionStatus(session);
+                  const statusStyles = getSessionStatusStyles(status);
+                  return (
+                    <div key={session.id} className={`border rounded-lg p-4 transition-all ${statusStyles.border}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          {/* Training name in large font */}
+                          <div className="mb-3">
+                            <h3 className={`text-lg font-semibold ${statusStyles.text}`}>
+                              {session.groupName}
+                            </h3>
+                            {session.groupName !== session.dayOfWeek && (
+                              <p className={`text-sm mt-1 ${statusStyles.text}`}>
+                                {session.dayOfWeek}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Details in small font */}
+                          <div className="space-y-1">
+                            <div className={`flex items-center space-x-4 text-sm ${statusStyles.text}`}>
+                              <div className="flex items-center space-x-1">
+                                <Calendar size={14} />
+                                <span>{formatSessionDate(session.sessionDate)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Clock size={14} />
+                                <span>{session.startTime} - {session.endTime}</span>
+                              </div>
+                            </div>
+                            <div className={`flex items-center space-x-4 text-sm ${statusStyles.text}`}>
+                              <div className="flex items-center space-x-1">
+                                <MapPin size={14} />
+                                <span>{session.location}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Users size={14} />
+                                <span>
+                                  {session.enrolled}/{session.capacity} enrolled
+                                  {session.availableSpots > 0 && ` (${session.availableSpots} spots left)`}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Status Information */}
+                            {status === 'daily-limit' && (
+                              <div className="flex items-center space-x-1 text-xs text-warning-500">
+                                <AlertCircle size={12} />
+                                <span>You are already enrolled in {getBookedSessionsOnDate(session.sessionDate)} trainings on this day</span>
+                              </div>
+                            )}
+                            {status === 'closed' && !session.isPast && (
+                              <div className="flex items-center space-x-1 text-xs text-inactive">
+                                <Clock size={12} />
+                                <span>
+                                  Registration opens {(() => {
+                                    const registrationDate = new Date(session.sessionDate);
+                                    registrationDate.setDate(registrationDate.getDate() - 7);
+                                    return registrationDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
-                        {/* Детали мелким шрифтом */}
-                        <div className="space-y-1">
-                          <div className={`flex items-center space-x-4 text-sm ${
-                            session.canEnroll ? 'text-inactive' : 'text-gray-400'
-                          }`}>
+                        <div className="flex items-center space-x-3 ml-4">
+                          {/* Status Indicators */}
+                          {session.isEnrolled && (
                             <div className="flex items-center space-x-1">
-                              <Calendar size={14} />
-                              <span>{formatSessionDate(session.date)}</span>
+                              <CheckCircle className="text-brand-violet" size={20} />
+                              <span className="text-xs text-brand-violet font-medium">Enrolled</span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <Clock size={14} />
-                              <span>{session.time}</span>
+                          )}
+                          
+                          {/* Action Buttons */}
+                          {status === 'available' || session.isEnrolled ? (
+                            <button
+                              onClick={() => handleEnrollment(session.id, session.trainingId)}
+                              disabled={enrollmentLoading === session.id}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                session.isEnrolled
+                                  ? 'bg-red-500 text-white hover:bg-red-600'
+                                  : 'innohassle-button-primary'
+                              }`}
+                            >
+                              {enrollmentLoading === session.id ? (
+                                <Loader2 className="animate-spin" size={16} />
+                              ) : session.isEnrolled ? (
+                                'Cancel'
+                              ) : (
+                                'Enroll'
+                              )}
+                            </button>
+                          ) : (
+                            <div className="px-4 py-2 rounded-lg text-sm font-medium bg-secondary/50 text-inactive cursor-not-allowed">
+                              {status === 'daily-limit' && 'Daily Limit'}
+                              {status === 'full' && 'Full'}
+                              {status === 'closed' && 'Registration Closed'}
+                              {status === 'past' && 'Past Event'}
                             </div>
-                          </div>
-                          <div className={`flex items-center space-x-4 text-sm ${
-                            session.canEnroll ? 'text-inactive' : 'text-gray-400'
-                          }`}>
-                            <div className="flex items-center space-x-1">
-                              <MapPin size={14} />
-                              <span>{session.location}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Trophy size={14} />
-                              <span>{session.trainer}</span>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-3 ml-4">
-                        {session.isEnrolled && (
-                          <CheckCircle className="text-green-500" size={20} />
-                        )}
-                        {session.canEnroll ? (
-                          <button
-                            onClick={() => handleEnrollment(session.id)}
-                            disabled={enrollmentLoading === session.id}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              session.isEnrolled
-                                ? 'bg-red-500 text-white hover:bg-red-600'
-                                : 'innohassle-button-primary'
-                            }`}
-                          >
-                            {enrollmentLoading === session.id ? (
-                              <Loader2 className="animate-spin" size={16} />
-                            ) : session.isEnrolled ? (
-                              'Cancel'
-                            ) : (
-                              'Enroll'
-                            )}
-                          </button>
-                        ) : (
-                          <div className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-500 cursor-not-allowed">
-                            Registration Opens Later
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -447,7 +603,9 @@ const ClubPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-inactive">Free Places</span>
-                <span className="font-medium text-contrast">{club.total_free_places}</span>
+                <span className="font-medium text-contrast">
+                  {club.groups.reduce((sum, group) => sum + (group.capacity - group.current_enrollment), 0)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-inactive">Total Members</span>
