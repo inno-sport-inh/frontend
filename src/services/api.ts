@@ -2,9 +2,9 @@
 const API_BASE_URL = (import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app') || window.location.hostname.includes('t9d.store')) 
   ? '/api' // Use proxy in development, local preview, and Vercel deployment
   : (import.meta.env.VITE_API_BASE_URL || 'http://t9d.store/api'); // Use direct URL only for other production deployments
-const BEARER_TOKEN = import.meta.env.VITE_BEARER_TOKEN || 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImEuY2hlcmthc292QGlubm9wb2xpcy51bml2ZXJzaXR5IiwiZXhwIjoxNzUyODg0MDg3LCJpYXQiOjE3NTI3OTc2ODcsImF1ZCI6InNwb3J0In0.Ag7ti-dsqus1fg4u5-7c6TWW2xhrMMxa00KkzhDHfaAD6KF3yN-X5sacCW-ALKfoY8qC-mC96AeZjWjKIXkKOM70X0k0k6yO79T9tQ2nNPEtePmE1RULasXg4GLvKbmuSX_VKpyuTPbkmfjc6f-9Axe4mYJjz36RXHdsNvwyJdGyHNesc3FvelAF5suelQnAc8H9ZuGSC_ZyIXdTpLHDvJjE5E4--NUh8Kof3_Xy2CqAYXVQmIruLJTOjUy_Hth-7m8tBXO-4sIqeSktVSMw3D3GveYXCRSJaZXAH98lTH79_GUf7PLJzI_itfCt9opm5B9HG8ppTQd8JsA0OJ4oDA';
+const BEARER_TOKEN = import.meta.env.VITE_BEARER_TOKEN
 
-// API Error handling
+console.log(BEARER_TOKEN)
 class APIError extends Error {
   constructor(public status: number, public statusText: string, public details?: any) {
     super(`API Error: ${status} ${statusText}`);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity, Dumbbell, Settings } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
@@ -285,6 +285,9 @@ const SchedulePage: React.FC = () => {
   });
   const [studentPercentile, setStudentPercentile] = useState(85);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const { user} = useAppStore();
+  const isAdmin = user ? (studentService.isSuperuser(user) || studentService.isStaff(user)) : false;
+  const isStudent = user ? studentService.isStudent(user) : false;
 
   // Добавляем поддержку закрытия Activity Details Modal по Escape
   useModalKeyboard(isModalOpen, () => {
@@ -577,9 +580,34 @@ const SchedulePage: React.FC = () => {
 
   return (
     <div 
-      className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding" 
+      className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding relative" 
       style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}
     >
+      {/* Side actions panel */}
+      {(isStudent || isAdmin) && (
+        <div className="hidden lg:flex flex-col gap-4 fixed right-8 top-32 z-40">
+          {isStudent && (
+            <a
+              href="/fitness-test"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-contrast shadow transition-colors"
+            >
+              <Dumbbell size={18} />
+я              <span>Fitness Test</span>
+            </a>
+          )}
+          {isAdmin && (
+            <a
+              href="http://t9d.store/admin/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-contrast shadow transition-colors"
+            >
+              <Settings size={18} />
+              <span>Admin Panel</span>
+            </a>
+          )}
+        </div>
+      )}
       {/* Daily Limit Error Message */}
       {dailyLimitError && (
         <div className="innohassle-card p-4 bg-gradient-to-r from-error-500/10 to-error-500/5 border-2 border-error-500/30 animate-in slide-in-from-top duration-300">
@@ -638,6 +666,29 @@ const SchedulePage: React.FC = () => {
             <h2 className="text-2xl sm:text-3xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
               {studentProfile ? `${studentProfile.student_info?.name || studentProfile.name || 'User'}'s Sport Progress` : 'Your Sport Progress'}
             </h2>
+            
+            {/* Trainer Information */}
+            {studentProfile && studentService.isTrainer(studentProfile) && (
+              <div className="mb-4">
+                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg">
+                  <span className="text-lg">👨‍🏫</span>
+                  <span className="text-white text-sm font-semibold">Teacher</span>
+                </div>
+                {studentProfile.trainer_info && studentProfile.trainer_info.groups && studentProfile.trainer_info.groups.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm text-inactive mb-2">Teaching groups:</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {studentProfile.trainer_info.groups.map((group: { id: number; name: string }) => (
+                        <div key={group.id} className="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-gradient-to-r from-secondary/50 to-secondary/30 border border-secondary/50">
+                          <span className="text-xs">🏃</span>
+                          <span className="text-xs font-medium text-contrast">{group.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Титул пользователя */}
             {studentProfile && (studentProfile.student_info?.medical_group || studentProfile.medical_group) && (

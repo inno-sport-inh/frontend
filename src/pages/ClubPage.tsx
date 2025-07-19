@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, CheckCircle, Loader2, AlertCircle, Trophy, Target } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Clock, CheckCircle, Loader2, AlertCircle, Trophy } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { generateSessionId, formatSessionDate } from '../utils/sessionUtils';
 import { clubsAPI, Club, ClubGroup } from '../services/api';
@@ -354,88 +354,18 @@ const ClubPage: React.FC = () => {
             <div className="space-y-4">
               {club.groups.map((group, index) => (
                 <div key={group.id} className="border border-secondary rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-contrast">
-                        {group.name || `Group ${index + 1}`}
-                      </h3>
-                      <p className="text-sm text-inactive mt-1">{group.description}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {group.accredited && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                          Accredited
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Group Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Users size={16} className="text-brand-violet" />
-                      <span className="text-sm text-contrast">
-                        {group.current_enrollment}/{group.capacity} enrolled
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Target size={16} className="text-brand-violet" />
-                      <span className="text-sm text-contrast">
-                        {group.capacity - group.current_enrollment} free places
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Capacity bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between text-xs text-inactive mb-1">
-                      <span>Capacity</span>
-                      <span>{group.current_enrollment}/{group.capacity}</span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div 
-                        className="bg-brand-violet h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${Math.min((group.current_enrollment / group.capacity) * 100, 100)}%` 
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Trainings */}
-                  {group.trainings && group.trainings.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-medium text-contrast mb-2">Upcoming Trainings:</h4>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
-                        {group.trainings.slice(0, 3).map((training, trainingIndex) => {
-                          const startDate = new Date(training.start);
-                          const endDate = new Date(training.end);
-                          return (
-                            <div key={trainingIndex} className="flex items-center space-x-2 text-sm">
-                              <Clock size={14} className="text-brand-violet" />
-                              <span className="text-contrast">
-                                {startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}:
-                                {' '}
-                                {startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                {' - '}
-                                {endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                {training.training_class && ` (${training.training_class})`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        {group.trainings.length > 3 && (
-                          <p className="text-xs text-inactive">
-                            +{group.trainings.length - 3} more trainings...
-                          </p>
-                        )}
-                      </div>
+                  <h3 className="text-lg font-semibold text-contrast">
+                    {group.name || `Group ${index + 1}`}
+                  </h3>
+                  {/* Medical groups info */}
+                  {Array.isArray(group.allowed_medical_groups) && group.allowed_medical_groups.length > 0 && (
+                    <div className="mt-2">
+                      <span className="text-xs text-inactive">Allowed medical groups:&nbsp;</span>
+                      <span className="text-xs text-brand-violet font-semibold">{group.allowed_medical_groups.join(', ')}</span>
                     </div>
                   )}
-
-                  {/* Trainers */}
                   {group.trainers && group.trainers.length > 0 && (
-                    <div>
+                    <div className="mt-2">
                       <h4 className="font-medium text-contrast mb-2">Trainers:</h4>
                       <div className="space-y-1">
                         {group.trainers.map((trainer) => (
@@ -593,28 +523,6 @@ const ClubPage: React.FC = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Club Stats */}
-          <div className="innohassle-card p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-contrast mb-4">Club Statistics</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-inactive">Total Groups</span>
-                <span className="font-medium text-contrast">{club.total_groups}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-inactive">Free Places</span>
-                <span className="font-medium text-contrast">
-                  {club.groups.reduce((sum, group) => sum + (group.capacity - group.current_enrollment), 0)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-inactive">Total Members</span>
-                <span className="font-medium text-contrast">
-                  {club.groups.reduce((sum, group) => sum + group.current_enrollment, 0)}
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* Quick Actions */}
           <div className="innohassle-card p-4 sm:p-6">

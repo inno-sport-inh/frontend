@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { User, LogOut, Calendar, HelpCircle, Users, BarChart3, Sun, Moon, Settings, Dumbbell } from 'lucide-react';
+import { User, LogOut, Calendar, HelpCircle, Users, BarChart3, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../hooks/useTheme';
 import { studentService } from '../services/studentService';
@@ -80,41 +80,6 @@ const TopBar: React.FC = () => {
                 <span>Clubs</span>
               </NavLink>
               
-              {/* Fitness Test for students */}
-              {isStudent && (
-                <NavLink
-                  to="/fitness-test"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-white'
-                        : 'text-inactive hover:text-contrast hover:bg-secondary'
-                    }`
-                  }
-                  style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
-                >
-                  <Dumbbell size={16} />
-                  <span>Fitness Test</span>
-                </NavLink>
-              )}
-              
-              {/* Admin Panel for admins */}
-              {isAdmin && (
-                <NavLink
-                  to="/admin"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-white'
-                        : 'text-inactive hover:text-contrast hover:bg-secondary'
-                    }`
-                  }
-                  style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #FF6B35 0%, #FF8E53 100%)'} : {}}
-                >
-                  <Settings size={16} />
-                  <span>Admin Panel</span>
-                </NavLink>
-              )}
               
               <NavLink
                 to="/faq"
@@ -248,41 +213,6 @@ const TopBar: React.FC = () => {
             <span>Clubs</span>
           </NavLink>
           
-          {/* Fitness Test for students */}
-          {isStudent && (
-            <NavLink
-              to="/fitness-test"
-              className={({ isActive }) =>
-                `flex flex-col items-center space-y-1 py-3 px-1 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'text-white scale-105'
-                    : 'text-inactive hover:text-contrast hover:bg-secondary hover:scale-105'
-                }`
-              }
-              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #9A2EFF 0%, #9747FF 100%)'} : {}}
-            >
-              <Dumbbell size={16} />
-              <span>Fitness</span>
-            </NavLink>
-          )}
-          
-          {/* Admin Panel for admins */}
-          {isAdmin && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `flex flex-col items-center space-y-1 py-3 px-1 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'text-white scale-105'
-                    : 'text-inactive hover:text-contrast hover:bg-secondary hover:scale-105'
-                }`
-              }
-              style={({ isActive }) => isActive ? {background: 'linear-gradient(90deg, #FF6B35 0%, #FF8E53 100%)'} : {}}
-            >
-              <Settings size={16} />
-              <span>Admin</span>
-            </NavLink>
-          )}
           
           <NavLink
             to="/faq"

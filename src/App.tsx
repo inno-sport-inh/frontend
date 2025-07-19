@@ -8,7 +8,6 @@ import FAQPage from "./pages/FAQPage.tsx";
 import ClubPage from "./pages/ClubPage.tsx";
 import ClubsPage from "./pages/ClubsPage.tsx";
 import FitnessTestPage from "./pages/FitnessTestPage.tsx";
-import AdminPage from "./pages/AdminPage.tsx";
 
 function App() {
   const { isLoading, loadUserProfile } = useAppStore();
@@ -29,12 +28,11 @@ function App() {
           <Route path="/club/:clubId" element={<ClubPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/fitness-test" element={<FitnessTestPage />} />
-          <Route path="/admin" element={<AdminPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      
+
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex items-center space-x-4">

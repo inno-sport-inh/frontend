@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Users, Target, Loader2, AlertCircle, Calendar } from 'lucide-react';
+import { Clock, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import { clubsAPI, Club, ClubGroup } from '../services/api';
 
 const ClubsPage: React.FC = () => {
@@ -182,60 +182,6 @@ const ClubsPage: React.FC = () => {
                     </div>
                     <div className="text-sm text-inactive">Sessions</div>
                   </div>
-                </div>
-                
-                {/* Groups Preview */}
-                <div className="space-y-3 mb-4">
-                  {club.groups.slice(0, 2).map((group, index) => {
-                    // Removed unused freeSpots variable
-                    return (
-                      <div key={group.id} className="border border-secondary rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-contrast">
-                            {group.name || `Group ${index + 1}`}
-                          </h4>
-                          {group.accredited && (
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                              Accredited
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 mb-2">
-                          <div className="flex items-center space-x-1 text-sm">
-                            <Users size={14} className="text-brand-violet" />
-                            <span className="text-contrast">
-                              {group.current_enrollment}/{group.capacity}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-sm">
-                            <Target size={14} className="text-brand-violet" />
-                            <span className="text-contrast">
-                              {group.capacity - group.current_enrollment} free
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Capacity bar */}
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div 
-                            className="bg-brand-violet h-2 rounded-full transition-all duration-300"
-                            style={{ 
-                              width: `${Math.min((group.current_enrollment / group.capacity) * 100, 100)}%` 
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                  
-                  {club.groups.length > 2 && (
-                    <div className="text-center">
-                      <span className="text-sm text-inactive">
-                        +{club.groups.length - 2} more groups
-                      </span>
-                    </div>
-                  )}
                 </div>
                 
                 {/* Upcoming Sessions Preview */}
