@@ -7,7 +7,7 @@ const FitnessTestPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<FitnessTestSessionDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [, setDetailsLoading] = useState(false);
   const [studentQuery, setStudentQuery] = useState('');
   const [studentOptions, setStudentOptions] = useState<FitnessTestStudentSuggestion[]>([]);
   const [studentSearchLoading, setStudentSearchLoading] = useState(false);
