@@ -32,8 +32,8 @@ const HistoryPage: React.FC = () => {
       setFitnessTests(fitnessData);
       setSemesterHistory(semesterHistoryData);
 
-      // Удаляем фильтрацию: отображаем все семестры, даже если trainings: []
-      // setAllSemesters больше не нужен
+      // Remove filtering: display all semesters, even if trainings: []
+      // setAllSemesters is no longer needed
     } catch (err) {
       // Error loading history data
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -96,7 +96,7 @@ const HistoryPage: React.FC = () => {
     );
   }
 
-  // Для блока статистики берём всегда последний семестр из semesterHistory
+  // For statistics block we always take the last semester from semesterHistory
   const currentSemester = semesterHistory.length > 0 ? semesterHistory[semesterHistory.length - 1] : undefined;
   const currentFitnessTest = fitnessTests.find(test => test.semester === currentSemester?.semester_name);
 
@@ -112,7 +112,7 @@ const HistoryPage: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-brand-violet/10 to-transparent rounded-full blur-xl"></div>
         </div>
 
-        {/* Статистика по текущему семестру */}
+        {/* Current semester statistics */}
         {currentSemester && (
             <div className="group innohassle-card p-4 bg-gradient-to-br from-floating to-primary/20 border-2 border-secondary/30 hover:border-success-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-success-500/10">
               <div className="flex items-center space-x-3 mb-4">
@@ -135,7 +135,7 @@ const HistoryPage: React.FC = () => {
                     <div className="text-lg font-semibold text-success-500">{currentSemester.trainings.length}</div>
                   </div>
                 </div>
-                {/* Все тренировки текущего семестра */}
+                {/* All trainings for the current semester */}
                 {currentSemester.trainings && currentSemester.trainings.length > 0 && (
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold text-contrast mb-2">Trainings</h3>

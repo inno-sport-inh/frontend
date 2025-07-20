@@ -39,7 +39,7 @@ function App() {
   );
 }
 
-// Обёртка для загрузки данных сессии
+// Wrapper for loading session data
 function FitnessSessionPageWrapper() {
   const { sessionId } = useParams();
   const [session, setSession] = useState<FitnessTestSessionDetails | null>(null);

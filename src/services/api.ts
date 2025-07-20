@@ -19,13 +19,13 @@ async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  // Создаем базовые заголовки без Content-Type
+  // Create base headers without Content-Type
   const baseHeaders: Record<string, string> = {
     'Authorization': `Bearer ${BEARER_TOKEN}`,
     'Accept': 'application/json',
   };
   
-  // Добавляем Content-Type только если это не FormData
+  // Add Content-Type only if it's not FormData
   if (!(options.body instanceof FormData)) {
     baseHeaders['Content-Type'] = 'application/json';
   }

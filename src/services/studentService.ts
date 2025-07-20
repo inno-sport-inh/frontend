@@ -1,5 +1,5 @@
-import { studentAPI } from './studentAPI';
-import { StudentHours, StudentProfile } from './types';
+import {studentAPI} from './studentAPI';
+import {StudentProfile} from './types';
 
 // Student service for managing student-related data
 export const studentService = {
@@ -37,7 +37,7 @@ export const studentService = {
           self_sport_hours: 0,
           required_hours: 30
         },
-        // Обратная совместимость
+        // Backward compatibility
         id: '1',
         email: 'student@innopolis.university',
         medical_group: 'General',
@@ -54,7 +54,7 @@ export const studentService = {
    * Get student info from profile (handles both new and old API format)
    */
   getStudentInfo: (profile: StudentProfile) => {
-    // Новый формат API
+    // New API format
     if (profile.student_info) {
       return {
         id: profile.student_info.id.toString(),
@@ -69,7 +69,7 @@ export const studentService = {
       };
     }
     
-    // Старый формат API (обратная совместимость)
+    // Old API format (backward compatibility)
     return {
       id: profile.id || profile.user_id,
       name: profile.name || 'Unknown',
@@ -142,59 +142,16 @@ export const studentService = {
   },
 
   /**
-   * Get student's hours information (legacy method for backwards compatibility)
-   */
-  getStudentHours: async (): Promise<StudentHours> => {
-    try {
-      const profile = await studentService.getProfile();
-      const studentInfo = studentService.getStudentInfo(profile);
-      const studentHours = await studentAPI.getStudentHours(studentInfo.id);
-      return studentHours;
-    } catch (error) {
-      return {
-        last_semesters_hours: [],
-        ongoing_semester: {
-          id_sem: 1,
-          hours_not_self: 12,
-          hours_self_not_debt: 0,
-          hours_self_debt: 0,
-          hours_sem_max: 30,
-          debt: 0
-        }
-      };
-    }
-  },
-
-  /**
    * Get student's performance percentile
    */
   getStudentPercentile: async (): Promise<number> => {
     try {
       const profile = await studentService.getProfile();
       const studentInfo = studentService.getStudentInfo(profile);
-      const result = await studentAPI.getStudentPercentile(studentInfo.id);
-      // API возвращает уже готовый процент (например 25.9)
-      return result; // Ensure we return the result
+      return await studentAPI.getStudentPercentile(studentInfo.id); // Ensure we return the result
     } catch (error) {
       return 0; // Return a default value in case of error
     }
   },
 
-  /**
-   * Calculate progress information from student hours (legacy method)
-   */
-  calculateProgress: (studentHours: StudentHours) => {
-    const ongoingSemester = studentHours.ongoing_semester;
-    const completedHours = ongoingSemester.hours_not_self + ongoingSemester.hours_self_not_debt;
-    const totalHours = ongoingSemester.hours_sem_max;
-    const progressPercentage = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
-    
-    return {
-      completedHours,
-      totalHours,
-      progressPercentage,
-      debt: ongoingSemester.debt,
-      isComplete: progressPercentage >= 100
-    };
-  }
 };

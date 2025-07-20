@@ -21,14 +21,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   date,
   isLoading = false
 }) => {
-  // Добавляем поддержку закрытия по Escape
+  // Add support for closing with Escape
   useModalKeyboard(isOpen, onClose);
 
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
-    if (e.target === e.currentTarget && !isLoading) {
+    // Close modal only if click was on backdrop, not on content
+    if (e.target === e.currentTarget) {
       onClose();
     }
   };

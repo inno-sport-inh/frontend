@@ -10,12 +10,13 @@ interface SelfSportModalProps {
   onSuccess?: (response: SelfSportUploadResponse) => void;
 }
 
-// Типы тренировок из API документации
-const TRAINING_TYPES = [
-  { id: 5, name: 'Swimming', is_active: true },
-  { id: 4, name: 'Walking', is_active: true },
-  { id: 2, name: 'Biking', is_active: true },
-  { id: 1, name: 'Running', is_active: true },
+// Training types from API documentation
+const trainingTypes = [
+  { id: 1, name: 'Running', max_hours: 2 },
+  { id: 2, name: 'Swimming', max_hours: 2 },
+  { id: 3, name: 'Cycling', max_hours: 2 },
+  { id: 4, name: 'Gym', max_hours: 2 },
+  { id: 5, name: 'Other', max_hours: 2 },
 ];
 
 export const SelfSportModal: React.FC<SelfSportModalProps> = ({
@@ -32,7 +33,7 @@ export const SelfSportModal: React.FC<SelfSportModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Добавляем поддержку закрытия по Escape
+  // Add support for closing with Escape
   useModalKeyboard(isOpen, onClose);
 
   const resetForm = () => {
@@ -199,7 +200,7 @@ export const SelfSportModal: React.FC<SelfSportModalProps> = ({
                            disabled:opacity-50 transition-all duration-200"
                   required
                 >
-                  {TRAINING_TYPES.filter(type => type.is_active).map((type) => (
+                  {trainingTypes.filter(type => type.max_hours > 0).map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
                     </option>

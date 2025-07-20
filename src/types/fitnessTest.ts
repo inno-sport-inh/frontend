@@ -6,25 +6,6 @@ export interface FitnessTestSession {
   retake: boolean;
 }
 
-export interface FitnessTestSessionDetails {
-  session: FitnessTestSession & { semester: { name: string }; id: number; retake: boolean };
-  exercises: Array<{
-    id: number;
-    name: string;
-    unit?: string;
-    select?: string[];
-    tiltId?: number;
-    designation_id?: number;
-    unitId?: number;
-  }>;
-  results: Record<string, FitnessTestResult[]>;
-}
-
-export interface FitnessTestStudentSuggestion {
-  value: string;
-  label: string;
-}
-
 export interface FitnessTestResult {
   student: {
     user_id: string;

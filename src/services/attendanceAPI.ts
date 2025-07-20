@@ -1,10 +1,10 @@
 import apiRequest from './api';
 import { TrainingGradesResponse, MarkAttendanceRequest, MarkAttendanceResponse, StudentSearchResponse } from './types';
 
-// Attendance API для работы с посещаемостью и оценками
+// Attendance API for working with attendance and grades
 export const attendanceAPI = {
   /**
-   * Скачать CSV с оценками тренировки
+   * Download CSV with training grades
    */
   downloadGradesCsv: async (trainingId: number): Promise<Blob> => {
     const response = await fetch(`/trainings/${trainingId}/grades.csv`, {
@@ -13,8 +13,8 @@ export const attendanceAPI = {
     return await response.blob();
   },
   /**
-   * Получить оценки для тренировки
-   * @param trainingId - ID тренировки
+   * Get grades for training
+   * @param trainingId - Training ID
    */
   getTrainingGrades: async (trainingId: number): Promise<TrainingGradesResponse> => {
     console.log('📊 Getting training grades for training:', trainingId);
@@ -24,9 +24,9 @@ export const attendanceAPI = {
   },
 
   /**
-   * Поиск студентов в группе
-   * @param groupId - ID группы
-   * @param term - Поисковый запрос
+   * Search students in group
+   * @param groupId - Group ID
+   * @param term - Search query
    */
   searchStudents: async (groupId: number, term: string): Promise<StudentSearchResponse> => {
     console.log('🔍 Searching students in group:', groupId, 'with term:', term);
@@ -42,8 +42,8 @@ export const attendanceAPI = {
   },
 
   /**
-   * Отметить посещаемость студентов
-   * @param data - Данные о посещаемости
+   * Mark student attendance
+   * @param data - Attendance data
    */
   markAttendance: async (data: MarkAttendanceRequest): Promise<MarkAttendanceResponse[]> => {
     console.log('✅ Marking attendance:', data);
@@ -55,14 +55,4 @@ export const attendanceAPI = {
     return result;
   },
 
-  /**
-   * Получить отчет о посещаемости группы
-   * @param groupId - ID группы
-   */
-  getGroupAttendanceReport: async (groupId: number) => {
-    console.log('📊 Getting attendance report for group:', groupId);
-    const result = await apiRequest(`/attendance/${groupId}/report`);
-    console.log('✅ Attendance report received:', result);
-    return result;
-  }
 }; 

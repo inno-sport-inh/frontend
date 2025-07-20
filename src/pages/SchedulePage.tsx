@@ -13,7 +13,7 @@ import ScheduleProgressHeader from '../components/ScheduleProgressHeader';
 import SideActionsPanel from '../components/SideActionsPanel';
 import { formatWeekRange } from '../utils/dateUtils';
 
-// Тип для одной активности недели (чтобы не конфликтовать с иконкой Activity)
+// Type for one week activity (to avoid conflict with Activity icon)
 type ScheduleActivity = {
   id: string;
   activity: string;
@@ -156,7 +156,7 @@ const SchedulePage: React.FC = () => {
   const isAdmin = user ? (studentService.isSuperuser(user) || studentService.isStaff(user)) : false;
   const isStudent = user ? studentService.isStudent(user) : false;
 
-  // Добавляем поддержку закрытия Activity Details Modal по Escape
+  // Add support for closing Activity Details Modal with Escape
   useModalKeyboard(isModalOpen, () => {
     setIsModalOpen(false);
     setSelectedActivity(null);
@@ -413,7 +413,7 @@ const SchedulePage: React.FC = () => {
         groupId: activity.groupId,
         groupName: activity.activity,
         start: activity.date?.toISOString?.() || '',
-        end: '', // Можно добавить end если нужно
+        end: '', // Can add end if needed
       });
       setAttendanceModalOpen(true);
       return;
@@ -769,7 +769,7 @@ const SchedulePage: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      // На десктопной версии используем обычную функцию отмены через модальное окно
+                                                      // On desktop version we use regular cancel function through modal
                                                       setSelectedActivity(activity);
                                                       setShowCancelModal(true);
                                                     }}
@@ -1010,7 +1010,7 @@ const SchedulePage: React.FC = () => {
                           {isEnrolled(selectedActivity.id) ? (
                               <button
                                   onClick={async () => {
-                                    // На мобильной версии отменяем запись напрямую без дополнительного модального окна
+                                    // On mobile version we cancel enrollment directly without additional modal
                                     try {
                                       setIsModalLoading(true);
 
@@ -1055,7 +1055,7 @@ const SchedulePage: React.FC = () => {
                                       return;
                                     }
 
-                                    // На мобильной версии записываемся напрямую без дополнительного модального окна
+                                    // On mobile version we enroll directly without additional modal
                                     if (canEnrollInMoreSessions() && selectedActivity.currentParticipants < selectedActivity.maxParticipants && selectedActivity.isRegistrationOpen) {
                                       try {
                                         setIsModalLoading(true);

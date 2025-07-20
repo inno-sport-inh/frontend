@@ -86,7 +86,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
             )}
           </p>
         </div>
-        {/* Прогресс-бар, легенда, статистика и мотивация */}
+        {/* Progress bar, legend, statistics and motivation */}
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between text-xs sm:text-sm text-inactive mb-3">
             <div className="flex items-center space-x-2">
@@ -108,7 +108,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
           <div className="relative w-full py-1">
             <div className="w-full bg-gradient-to-r from-secondary/50 to-secondary/30 rounded-2xl h-8 shadow-inner border border-secondary/50 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-2xl"></div>
-              {/* Основные часы */}
+              {/* Main hours */}
               {(() => {
                 const regularHours = Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours);
                 const regularPercentage = Math.min((regularHours / studentProgress.totalHours) * 100, 100);
@@ -121,7 +121,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
                   </div>
                 );
               })()}
-              {/* Self-sport часы */}
+              {/* Self-sport hours */}
               {(() => {
                 const regularHours = Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours);
                 const regularPercentage = Math.min((regularHours / studentProgress.totalHours) * 100, 100);
@@ -139,7 +139,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
                   </div>
                 );
               })()}
-              {/* Превышение требования */}
+              {/* Exceeding requirement */}
               {(() => {
                 const excessPercentage = studentProgress.completedHours > studentProgress.totalHours 
                   ? Math.min(((studentProgress.completedHours - studentProgress.totalHours) / studentProgress.totalHours) * 100, 50)
@@ -157,7 +157,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
                   </div>
                 );
               })()}
-              {/* Долг (если есть) */}
+              {/* Debt (if any) */}
               {studentProgress.debt > 0 && (
                 <div 
                   className="absolute right-0 top-0 h-full bg-gradient-to-r from-red-500 to-red-600 rounded-r-2xl border-2 border-red-400 transition-all duration-1000 ease-out"

@@ -7,7 +7,7 @@ const ClubsPage: React.FC = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Состояние для открытия описания по id клуба
+  // State for opening description by club id
   const [descOpen, setDescOpen] = useState<{ [clubId: number]: boolean }>({});
 
   useEffect(() => {

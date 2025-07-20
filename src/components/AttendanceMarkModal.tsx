@@ -20,7 +20,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [hours, setHours] = useState('');
 
-  // Для индивидуального редактирования часов
+  // For individual hours editing
   const handleStudentHoursChange = (student_id: number, value: string) => {
     setStudents(prev => prev.map(s =>
       s.student_id === student_id ? { ...s, hours: value } : s
@@ -34,7 +34,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
-  // Загрузка студентов при открытии модалки
+  // Load students when modal opens
   useEffect(() => {
     if (!isOpen || !trainingId) return;
     attendanceAPI.getTrainingGrades(trainingId).then(res => {
@@ -53,7 +53,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
     });
   }, [isOpen, trainingId]);
 
-  // Фильтрация студентов по поиску (только если нет search term)
+  // Filter students by search (only if no search term)
   const filteredStudents = Array.isArray(students) ? students : [];
 
 
@@ -76,7 +76,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
   }, [studentQuery, groupId]);
 
 
-  // Обработка отметки чекбокса
+  // Handle checkbox marking
   const handleCheck = (id: number) => {
     setChecked(prev => {
       const next = { ...prev, [id]: !prev[id] };
@@ -86,7 +86,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
   };
 
 
-  // Экспортировать CSV с сервера через API
+  // Export CSV from server via API
   const handleExportCsv = async () => {
     if (!trainingId) return;
     try {
@@ -104,7 +104,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
     }
   };
 
-  // Отметить всех студентов в таблице
+  // Mark all students in the table
   const handleMarkAll = () => {
     if (!students || students.length === 0) return;
     const allChecked: {[id: number]: boolean} = {};
@@ -115,7 +115,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
     setMarkedCount(students.length);
   };
 
-  // Сохранение отметки посещаемости
+  // Save attendance marking
   const handleSave = async () => {
     if (!trainingId) return;
     const students_hours = students
@@ -142,7 +142,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
-  // Формат времени для заголовка
+  // Format time for header
   const formatTime = (iso?: string) => iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '';
 
   return (
@@ -171,7 +171,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
                     studentSearchLoading={studentSearchLoading}
                     selectedStudent={selectedStudent}
                     setSelectedStudent={option => {
-                      // Добавить студента в таблицу если его нет
+                      // Add student to table if not present
                       const [student_id, full_name, email, med_group] = option.value.split('_');
                       if (!students.some(st => String(st.student_id) === student_id)) {
                         setStudents(prev => [
@@ -186,7 +186,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
                         ]);
                         setTotalCount(prev => prev + 1);
                       }
-                      // После выбора сбрасываем только selectedStudent, чтобы дропдаун оставался
+                      // After selection, only reset selectedStudent to keep dropdown
                       setSelectedStudent(null);
                     }}
                 />
@@ -236,7 +236,7 @@ const AttendanceMarkModal: React.FC<AttendanceMarkModalProps> = ({ isOpen, onClo
                 />
               </div>
             </div>
-            {/* Современный список студентов */}
+            {/* Modern student list */}
             <div className="rounded-2xl border-2 border-secondary/30 bg-gray-100 dark:bg-neutral-800 divide-y divide-secondary/20 shadow-sm">
               <div className="grid grid-cols-12 gap-4 px-8 py-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-t-2xl text-contrast font-semibold text-base">
                 <div className="col-span-1 text-center">#</div>

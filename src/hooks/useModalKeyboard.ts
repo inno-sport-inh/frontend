@@ -10,10 +10,10 @@ export const useModalKeyboard = (isOpen: boolean, onClose: () => void) => {
       }
     };
 
-    // Добавляем обработчик события
+    // Add event handler
     document.addEventListener('keydown', handleKeyDown);
 
-    // Очищаем обработчик при размонтировании или закрытии модального окна
+    // Clean up handler on unmount or modal close
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };

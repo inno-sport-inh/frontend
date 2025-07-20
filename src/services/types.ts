@@ -21,7 +21,7 @@ export interface TrainerInfo {
   id: number;
   name: string;
   email: string;
-  groups: any[]; // Тип групп тренера будет уточнен позже
+  groups: any[]; // Trainer groups type will be specified later
 }
 
 export interface StudentProfile {
@@ -30,7 +30,7 @@ export interface StudentProfile {
   student_info?: StudentInfo;
   trainer_info?: TrainerInfo;
   
-  // Совместимость со старым API - для обратной совместимости
+  // Compatibility with old API - for backward compatibility
   id?: string;
   name?: string;
   email?: string;
@@ -103,10 +103,6 @@ export interface StudentHours {
   };
 }
 
-export interface BetterThanResponse {
-  better_than: number;
-}
-
 export interface NegativeHoursResponse {
   final_hours: number;
 }
@@ -154,10 +150,6 @@ export interface StudentSearchResponse {
   }>;
 }
 
-export interface EnrollmentRequest {
-  group_id: number;
-}
-
 export interface UnenrollByTrainerRequest {
   group_id: number;
   student_id: number;
@@ -176,46 +168,6 @@ export interface MarkAttendanceResponse {
   hours: number;
 }
 
-export interface MarkAttendanceErrorResponse {
-  code: number;
-  description: string;
-  negative_marks: Array<{
-    email: string;
-    hours: number;
-  }>;
-  overflow_marks: Array<{
-    email: string;
-    hours: number;
-  }>;
-}
-
-export interface EnrollmentErrorResponse {
-  code: number;
-  detail: string;
-}
-
-export interface APIErrorResponse {
-  detail: string;
-}
-
-// Medical Reference Types
-export interface MedicalReference {
-  id: number;
-  image_url: string;
-  start: string;
-  end: string;
-  student_comment?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-}
-
-export interface MedicalReferenceUpload {
-  image: File;
-  start: string;
-  end: string;
-  student_comment?: string;
-}
-
 export interface MedicalReferenceUploadResponse {
   message: string;
   reference_id: number;
@@ -225,35 +177,9 @@ export interface MedicalReferenceUploadResponse {
   uploaded: string;
 }
 
-export interface MedicalReferenceErrorResponse {
-  code: number;
-  detail: string;
-}
-
-// Self-Sport Types
-export interface SelfSportUploadRequest {
-  link: string;
-  hours: number;
-  training_type: number;
-  student_comment?: string;
-  parsed_data?: any;
-}
 
 export interface SelfSportUploadResponse {
   message?: string;
-  // API возвращает пустое тело при успехе (200)
-}
-
-export interface SelfSportErrorResponse {
-  code: number;
-  detail: string;
-}
-
-export interface TrainingType {
-  id: number;
-  name: string;
-  is_active: boolean;
-  max_hours?: number;
 }
 
 // Fitness Test Types
@@ -299,10 +225,6 @@ export interface StudentSemesterHistory {
   semester_end: string;
   required_hours: number;
   total_hours: number;
-  trainings: StudentHistoryTraining[];
-}
-
-export interface StudentHistoryResponse {
   trainings: StudentHistoryTraining[];
 }
 

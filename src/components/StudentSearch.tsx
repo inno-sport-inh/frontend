@@ -38,7 +38,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
             className="px-4 py-2 hover:bg-brand-violet/10 cursor-pointer text-contrast dark:text-white"
             onClick={() => {
               setSelectedStudent(option);
-              setStudentQuery(''); // очищаем input после выбора
+              setStudentQuery(''); // clear input after selection
             }}
           >
             {option.label}

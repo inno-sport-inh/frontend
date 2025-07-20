@@ -24,7 +24,7 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Добавляем поддержку закрытия по Escape
+  // Add support for closing with Escape
   useModalKeyboard(isOpen, onClose);
 
   const resetForm = () => {
@@ -43,8 +43,8 @@ export const MedicalReferenceModal: React.FC<MedicalReferenceModalProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Закрываем модальное окно только если клик был по backdrop, а не по содержимому
-    // И только если не происходит загрузка
+    // Close modal only if click was on backdrop, not on content
+    // And only if not loading
     if (e.target === e.currentTarget && !isUploading) {
       handleClose();
     }

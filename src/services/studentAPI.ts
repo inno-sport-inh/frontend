@@ -1,5 +1,5 @@
 import apiRequest from './api';
-import { WeeklyScheduleResponse, StudentProfile, StudentHours, FitnessTestResult, Semester, StudentHistoryTraining, StudentSemesterHistory, MeasurementUploadRequest, MeasurementUploadResponse, StudentMeasurementResponse, MedicalReferenceUploadResponse, SelfSportUploadResponse } from './types';
+import { WeeklyScheduleResponse, StudentProfile, FitnessTestResult, StudentSemesterHistory, StudentMeasurementResponse, MedicalReferenceUploadResponse, SelfSportUploadResponse } from './types';
 
 // Student API for new endpoints
 export const studentAPI = {
@@ -13,15 +13,6 @@ export const studentAPI = {
     return result;
   },
 
-  /**
-   * Get student hours information
-   */
-  getStudentHours: async (studentId: string): Promise<StudentHours> => {
-    console.log('📊 Getting student hours for ID:', studentId);
-    const result = await apiRequest<StudentHours>(`/attendance/${studentId}/hours`);
-    console.log('✅ Student hours received:', result);
-    return result;
-  },
 
   /**
    * Get weekly schedule with participants information for each training
@@ -29,7 +20,7 @@ export const studentAPI = {
    * @param end - End date
    */
   getWeeklySchedule: async (start: Date, end: Date): Promise<WeeklyScheduleResponse> => {
-    // Форматировать дату как YYYY-MM-DDTHH:mm:ss (локальное время)
+    // Format date as YYYY-MM-DDTHH:mm:ss (local time)
     function toLocalISOString(date: Date, endOfDay = false) {
       const pad = (n: number) => n.toString().padStart(2, '0');
       if (endOfDay) {
@@ -102,7 +93,7 @@ export const studentAPI = {
     const result = await apiRequest<MedicalReferenceUploadResponse>('/references/upload', {
       method: 'POST',
       body: formData,
-      // Не устанавливаем headers для FormData - браузер сам добавит multipart/form-data
+      // Don't set headers for FormData - browser will add multipart/form-data automatically
     });
     
     console.log('✅ Medical reference uploaded successfully');
@@ -121,66 +112,12 @@ export const studentAPI = {
   },
 
   /**
-   * Upload student measurement
-   * @param studentId - Student ID
-   * @param measurementId - Measurement ID
-   * @param value - Measurement value
-   */
-  uploadMeasurement: async (
-    studentId: number,
-    measurementId: number,
-    value: number
-  ): Promise<MeasurementUploadResponse> => {
-    console.log('📏 Uploading measurement...');
-    
-    const requestBody: MeasurementUploadRequest = {
-      student_id: studentId,
-      measurement_id: measurementId,
-      value: value
-    };
-    
-    const result = await apiRequest<MeasurementUploadResponse>('/measurements/upload', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    console.log('✅ Measurement uploaded successfully:', result);
-    return result;
-  },
-
-  /**
    * Get fitness test results
    */
   getFitnessTestResults: async (): Promise<FitnessTestResult[]> => {
     console.log('🏃 Getting fitness test results...');
     const result = await apiRequest<FitnessTestResult[]>('/fitness-test/result');
     console.log('✅ Fitness test results received:', result);
-    return result;
-  },
-
-  /**
-   * Get semester information
-   * @param current - If true, get only current semester
-   */
-  getSemesters: async (current: boolean = false): Promise<Semester[]> => {
-    const params = current ? '?current=true' : '';
-    console.log('📅 Getting semesters...', current ? '(current only)' : '(all)');
-    const result = await apiRequest<Semester[]>(`/semester${params}`);
-    console.log('✅ Semesters received:', result);
-    return result;
-  },
-
-  /**
-   * Get student training history for a specific semester
-   * @param semesterId - Semester ID
-   */
-  getStudentHistory: async (semesterId: number): Promise<StudentHistoryTraining[]> => {
-    console.log('📚 Getting student history for semester:', semesterId);
-    const result = await apiRequest<StudentHistoryTraining[]>(`/student/history/${semesterId}`);
-    console.log('✅ Student history received:', result);
     return result;
   },
 

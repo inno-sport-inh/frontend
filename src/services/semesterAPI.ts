@@ -12,7 +12,4 @@ export const semesterAPI = {
   getSemesters: async (): Promise<Semester[]> => {
     return apiRequest<Semester[]>('/semester');
   },
-  getCurrentSemester: async (): Promise<Semester> => {
-    return apiRequest<Semester[]>('/semester?current=true').then(list => list[0]);
-  },
 };
