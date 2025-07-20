@@ -221,11 +221,35 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
           {studentProgress && typeof studentProgress.progressPercentage === 'number' && (
             <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 px-4 py-2 rounded-xl border border-brand-violet/20">
-              <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
+              <span className="text-lg">😁</span>
               <span className="text-sm font-bold text-contrast">
                 {studentProgress.progressPercentage.toFixed(1)}% Complete
               </span>
             </div>
+          )}
+          {studentProgress.debt > 0 && (
+              <div className="flex items-center space-x-2 bg-gradient-to-r from-orange-500/10 to-orange-500/5 px-4 py-2 rounded-xl border border-orange-500/20">
+                <span className="text-lg">⚠️</span>
+                <span className="text-sm font-bold text-orange-500">
+                    {studentProgress.debt} Hours Debt
+                  </span>
+              </div>
+          )}
+          {studentProgress.progressPercentage >= 100 && (
+              <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/20 to-brand-violet/10 px-4 py-2 rounded-xl border border-brand-violet/30 animate-bounce">
+                <span className="text-lg">🏆</span>
+                <span className="text-sm font-bold text-brand-violet">
+                    Goal Achieved!
+                  </span>
+              </div>
+          )}
+          {studentProgress.selfSportHours > 0 && (
+              <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-blue-500/5 px-4 py-2 rounded-xl border border-blue-500/20">
+                <span className="text-lg">🏋️</span>
+                <span className="text-sm font-bold text-blue-500">
+                    {studentProgress.selfSportHours} Self-Sport Hours
+                  </span>
+              </div>
           )}
           {typeof studentPercentile === 'number' && (
             <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
