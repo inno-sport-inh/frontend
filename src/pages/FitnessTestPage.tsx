@@ -20,7 +20,7 @@ const FitnessTestPage: React.FC = () => {
   };
   useEffect(() => {
     fetchSessions();
-  });
+  }, []); // Исправлено: теперь вызывается только при монтировании
   const handleCreateNewSession = () => {
 
     setNewSessionModalOpen(false);
