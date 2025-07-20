@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Activity } from '../types';
-import { mockActivities } from '../data/mockData';
 import { StudentProfile } from '../services/types';
 import { studentAPI } from '../services/studentAPI';
 
@@ -35,7 +34,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
-  activities: mockActivities,
+  activities: [],
   isLoading: false,
   error: null,
   user: null,
@@ -59,7 +58,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadActivities: async () => {
     set({ isLoading: true });
     await new Promise(resolve => setTimeout(resolve, 1000));
-    set({ activities: mockActivities, isLoading: false });
+    set({ activities: [], isLoading: false });
   },
 
   clearError: () => set({ error: null }),

@@ -47,9 +47,6 @@ const formatDate = (date: Date) => {
   });
 };
 
-
-// Получить расписание недели с API или вернуть моковые данные
-// @ts-ignore
 const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity[]> => {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
@@ -88,6 +85,7 @@ const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity
     });
   } catch (error) {
     console.error('Error fetching weekly schedule:', error);
+    return []; // Return empty array on error
   }
 };
 
@@ -159,15 +157,15 @@ const SchedulePage: React.FC = () => {
   const [pastDaysCollapsed, setPastDaysCollapsed] = useState(true);
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
-  const [studentProgress, setStudentProgress] = useState({
-    completedHours: 12,
-    totalHours: 30,
-    progressPercentage: 40,
-    debt: 0,
-    selfSportHours: 0,
-    isComplete: false
-  });
-  const [studentPercentile, setStudentPercentile] = useState(85);
+  const [studentProgress, setStudentProgress] = useState<{
+    completedHours: number;
+    totalHours: number;
+    progressPercentage: number;
+    debt: number;
+    selfSportHours: number;
+    isComplete: boolean;
+  } | null>(null);
+  const [studentPercentile, setStudentPercentile] = useState<number | null>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const { user} = useAppStore();
   const isAdmin = user ? (studentService.isSuperuser(user) || studentService.isStaff(user)) : false;
@@ -197,11 +195,6 @@ const SchedulePage: React.FC = () => {
         setStudentPercentile(percentile);
         setStudentProfile(profile);
 
-        console.log('📊 Student data loaded:', {
-          profile,
-          progress,
-          percentile
-        });
       } catch (error) {
         console.error('Error loading student data:', error);
       }

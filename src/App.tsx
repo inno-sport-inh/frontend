@@ -12,7 +12,7 @@ import FitnessSessionPage from "./pages/FitnessSessionPage";
 import { FitnessTestSessionDetails } from './services/fitnessTestAPI';
 
 function App() {
-  const { isLoading, loadUserProfile } = useAppStore();
+  const { loadUserProfile } = useAppStore();
 
   // Load user profile on app initialization
   useEffect(() => {
@@ -35,15 +35,6 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 flex items-center space-x-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-violet"></div>
-            <span className="text-gray-700">Loading...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-// ...existing code...
+
 import { studentService } from '../services/studentService';
 
 interface ScheduleProgressHeaderProps {
@@ -11,8 +11,8 @@ interface ScheduleProgressHeaderProps {
     debt: number;
     selfSportHours: number;
     isComplete: boolean;
-  };
-  studentPercentile: number;
+  } | null;
+  studentPercentile: number | null;
 }
 
 const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
@@ -20,6 +20,14 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
   studentProgress,
   studentPercentile
 }) => {
+  const isLoading = !studentProfile || !studentProgress || typeof studentPercentile !== 'number';
+  if (isLoading) {
+    return (
+      <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5 flex items-center justify-center min-h-[180px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-violet mx-auto" />
+      </div>
+    );
+  }
   return (
     <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
       {/* Background decoration */}
@@ -33,7 +41,9 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
             </div>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-            {studentProfile ? `${studentProfile.student_info?.name || studentProfile.name || 'User'}'s Sport Progress` : 'Your Sport Progress'}
+            {studentProfile && studentProfile.student_info && studentProfile.student_info.name
+              ? `${studentProfile.student_info.name}'s Sport Progress`
+              : ''}
           </h2>
           {/* Trainer Information */}
           {studentProfile && studentService.isTrainer(studentProfile) && (
@@ -209,19 +219,23 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
         </div>
         {/* Progress Stats */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-          <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 px-4 py-2 rounded-xl border border-brand-violet/20">
-            <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
-            <span className="text-sm font-bold text-contrast">
-              {studentProgress.progressPercentage.toFixed(1)}% Complete
-            </span>
-          </div>
-          <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
-            <span className="text-lg">🎯</span>
-            <span className="text-sm font-bold text-success-500">
-              Top {studentPercentile}% Performer
-            </span>
-          </div>
-          {studentProgress.progressPercentage >= 100 && (
+          {studentProgress && typeof studentProgress.progressPercentage === 'number' && (
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 px-4 py-2 rounded-xl border border-brand-violet/20">
+              <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
+              <span className="text-sm font-bold text-contrast">
+                {studentProgress.progressPercentage.toFixed(1)}% Complete
+              </span>
+            </div>
+          )}
+          {typeof studentPercentile === 'number' && (
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
+              <span className="text-lg">🎯</span>
+              <span className="text-sm font-bold text-success-500">
+                Top {studentPercentile}% Performer
+              </span>
+            </div>
+          )}
+          {studentProgress && typeof studentProgress.progressPercentage === 'number' && studentProgress.progressPercentage >= 100 && (
             <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/20 to-brand-violet/10 px-4 py-2 rounded-xl border border-brand-violet/30 animate-bounce">
               <span className="text-lg">🏆</span>
               <span className="text-sm font-bold text-brand-violet">
