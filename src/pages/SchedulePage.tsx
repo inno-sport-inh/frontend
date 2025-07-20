@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
-import SportInfoModal from '../components/SportInfoModal';
 import { MedicalReferenceModal } from '../components/MedicalReferenceModal';
 import { SelfSportModal } from '../components/SelfSportModal';
 import { generateSessionId } from '../utils/sessionUtils';
@@ -146,8 +145,6 @@ const SchedulePage: React.FC = () => {
 
     return canBook;
   };
-  const [showSportInfoModal, setShowSportInfoModal] = useState(false);
-  const [selectedSport, setSelectedSport] = useState<string>('');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     // Initialize with current week (not hardcoded date)
     return getWeekStart(new Date());
@@ -351,10 +348,6 @@ const SchedulePage: React.FC = () => {
     }
   };
 
-  const handleSportClick = (sportName: string) => {
-    setSelectedSport(sportName);
-    setShowSportInfoModal(true);
-  };
 
   const getActivitiesForDay = (day: string) => {
     return weekActivities.filter(activity => activity.dayOfWeek === day);
@@ -705,10 +698,6 @@ const SchedulePage: React.FC = () => {
                                       <div className={`flex items-center space-x-1 cursor-pointer ${
                                           activity.isPast ? 'text-inactive' : 'text-contrast'
                                       }`}
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             handleSportClick(activity.activity);
-                                           }}
                                       >
                                         <Clock size={14} />
                                         <span className="font-medium text-xs hover:text-brand-violet transition-colors">{activity.time}</span>
@@ -735,10 +724,6 @@ const SchedulePage: React.FC = () => {
                                       <div className={`flex items-center space-x-1 cursor-pointer ${
                                           activity.isPast ? 'text-inactive' : 'text-contrast'
                                       }`}
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             handleSportClick(activity.activity);
-                                           }}
                                       >
                                         <Clock size={15} />
                                         <span className="font-medium text-xs sm:text-sm hover:text-brand-violet transition-colors">{activity.time}</span>
@@ -746,10 +731,6 @@ const SchedulePage: React.FC = () => {
                                       <div className="flex items-center space-x-1">
                                         <Users size={15} className="text-inactive" />
                                         <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleSportClick(activity.activity);
-                                            }}
                                             className="text-contrast font-medium hover:text-brand-violet transition-colors cursor-pointer underline-offset-2 hover:underline text-xs sm:text-sm"
                                         >
                                           {activity.activity}
@@ -852,15 +833,6 @@ const SchedulePage: React.FC = () => {
             isLoading={isLoading}
         />
 
-        {/* Sport info modal */}
-        <SportInfoModal
-            isOpen={showSportInfoModal}
-            onClose={() => {
-              setShowSportInfoModal(false);
-              setSelectedSport('');
-            }}
-            sportName={selectedSport}
-        />
 
         {/* Medical Reference Modal */}
         <MedicalReferenceModal
