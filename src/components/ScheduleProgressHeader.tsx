@@ -183,16 +183,6 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
               </div>
             </div>
           </div>
-          {/* Легенда */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
-              <span className="text-contrast font-medium">
-                Training hours: {Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours)}
-              </span>
-            </div>
-
-          </div>
         </div>
         {/* Progress Stats */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
