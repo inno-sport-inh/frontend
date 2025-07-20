@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Calendar, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { studentAPI } from '../services/studentAPI';
 import { FitnessTestResult, StudentHistoryTraining, StudentSemesterHistory } from '../services/types';
-import SemesterDetailsModal from '../components/SemesterDetailsModal';
+import HistorySemesterModal from '../components/history/HistorySemesterModal';
+import FitnessTestsHistory from '../components/history/FitnessTestsHistory';
+import SemestersHistory from '../components/history/SemestersHistory';
 
 const HistoryPage: React.FC = () => {
   const [fitnessTests, setFitnessTests] = useState<FitnessTestResult[]>([]);
@@ -106,150 +108,16 @@ const HistoryPage: React.FC = () => {
       </div>
 
       {/* Fitness Tests History */}
-      {fitnessTests.length > 0 && (
-        <div className="group innohassle-card p-4 bg-gradient-to-br from-floating to-primary/20 border-2 border-secondary/30 hover:border-success-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-success-500/10">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-success-500/20 to-success-500/10 rounded-xl border border-success-500/20">
-              <Trophy className="text-success-500" size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-contrast">Fitness Tests</h2>
-              <p className="text-inactive">Your fitness test results and exercise progress</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {fitnessTests.map((test, index) => (
-              <div key={index} className="bg-gradient-to-r from-primary/50 to-secondary/30 border-2 border-secondary/50 rounded-2xl p-4 hover:border-success-500/30 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-contrast">{test.semester}</h3>
-                    <div className="flex items-center space-x-4 mt-1">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                        test.grade 
-                          ? 'bg-gradient-to-r from-success-500/20 to-success-500/10 text-success-500 border-success-500/30' 
-                          : 'bg-gradient-to-r from-red-500/20 to-red-500/10 text-red-500 border-red-500/30'
-                      }`}>
-                        {test.grade ? 'Passed' : 'Failed'}
-                      </span>
-                      {test.retake && (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500/20 to-orange-500/10 text-orange-500 border border-orange-500/30">
-                          Retake
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-contrast">{test.total_score}</div>
-                    <div className="text-sm text-inactive">Total Score</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {test.details.map((exercise, exerciseIndex) => (
-                    <div key={exerciseIndex} className="bg-gradient-to-br from-primary/30 to-secondary/20 border border-secondary/50 rounded-xl p-4 hover:border-brand-violet/30 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-contrast font-medium">{exercise.exercise}</div>
-                        <div className="text-sm text-brand-violet font-medium bg-brand-violet/10 px-2 py-1 rounded-lg">
-                          {exercise.score}/{exercise.max_score}
-                        </div>
-                      </div>
-                      <div className="text-sm text-inactive mb-3">
-                        {exercise.value} {exercise.unit}
-                      </div>
-                      <div className="w-full bg-gradient-to-r from-secondary/50 to-secondary/30 rounded-2xl h-3 shadow-inner border border-secondary/50 relative overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-brand-violet to-brand-violet/80 h-full rounded-2xl transition-all duration-500 shadow-lg"
-                          style={{ width: `${(exercise.score / exercise.max_score) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <FitnessTestsHistory fitnessTests={fitnessTests} />
 
       {/* Semesters */}
-      <div className="group innohassle-card p-4 bg-gradient-to-br from-floating to-primary/20 border-2 border-secondary/30 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl border border-blue-500/20">
-            <Calendar className="text-blue-500" size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-contrast">Academic History</h2>
-            <p className="text-inactive">View detailed history by semester</p>
-          </div>
-        </div>
-        <div className="space-y-4">
-          {semesterHistory.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="p-4 bg-gradient-to-br from-inactive/10 to-inactive/5 rounded-2xl w-fit mx-auto mb-4">
-                <Calendar className="text-inactive" size={48} />
-              </div>
-              <h3 className="text-lg font-semibold text-contrast mb-2">No Training History</h3>
-              <p className="text-inactive">
-                You haven't attended any training sessions yet. 
-                Check the Schedule page to find and enroll in available trainings.
-              </p>
-            </div>
-          ) : (
-            semesterHistory.map((semester) => (
-              <button
-                key={semester.semester_id}
-                onClick={() => handleSemesterClick(semester)}
-                className="w-full bg-gradient-to-r from-primary/50 to-secondary/30 border-2 border-secondary/50 rounded-2xl p-4 hover:border-blue-500/50 hover:from-blue-500/5 hover:to-blue-500/10 transition-all duration-300 text-left group hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1 transform"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-500/30 transition-all duration-300">
-                      <Calendar className="text-blue-500" size={20} />
-                    </div>
-                    <div>
-                      <div className="text-contrast font-semibold">{semester.semester_name}</div>
-                      <div className="text-inactive text-sm">
-                        {new Date(semester.semester_start).toLocaleDateString()} - {new Date(semester.semester_end).toLocaleDateString()}
-                      </div>
-                      <div className="text-inactive text-xs mt-1">
-                        {semester.trainings.length} training{semester.trainings.length !== 1 ? 's' : ''} attended
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-contrast font-semibold">{semester.total_hours} hours</div>
-                      <div className="text-inactive text-sm">
-                        of {semester.required_hours} required
-                      </div>
-                      <div className={`text-xs font-medium px-2 py-1 rounded-lg border ${
-                        semester.total_hours >= semester.required_hours 
-                          ? 'bg-gradient-to-r from-success-500/20 to-success-500/10 text-success-500 border-success-500/30' 
-                          : semester.total_hours > 0 
-                            ? 'bg-gradient-to-r from-orange-500/20 to-orange-500/10 text-orange-500 border-orange-500/30' 
-                            : 'bg-gradient-to-r from-red-500/20 to-red-500/10 text-red-500 border-red-500/30'
-                      }`}>
-                        {semester.total_hours >= semester.required_hours 
-                          ? 'Completed' 
-                          : `${semester.required_hours - semester.total_hours} hours left`}
-                      </div>
-                    </div>
-                    <ChevronRight 
-                      className="text-inactive group-hover:text-blue-500 transition-colors" 
-                      size={20} 
-                    />
-                  </div>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
+      <SemestersHistory semesterHistory={semesterHistory} onSemesterClick={handleSemesterClick} />
 
       {/* Modal */}
-      <SemesterDetailsModal
+      <HistorySemesterModal
         isOpen={selectedSemester !== null}
         onClose={closeModal}
-        semesterName={selectedSemester?.semester_name || ''}
+        semester={selectedSemester}
         trainings={modalTrainings}
         fitnessTest={fitnessTests.find(test => test.semester === selectedSemester?.semester_name)}
         loading={modalLoading}

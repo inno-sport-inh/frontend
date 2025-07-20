@@ -29,18 +29,24 @@ export const studentAPI = {
    * @param end - End date
    */
   getWeeklySchedule: async (start: Date, end: Date): Promise<WeeklyScheduleResponse> => {
+    // Форматировать дату как YYYY-MM-DDTHH:mm:ss (локальное время)
+    function toLocalISOString(date: Date, endOfDay = false) {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      if (endOfDay) {
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T23:59:59`;
+      }
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
     const params = new URLSearchParams({
-      start: start.toISOString(),
-      end: end.toISOString(),
+      start: toLocalISOString(start),
+      end: toLocalISOString(end, true),
     });
-    
     const endpoint = `/student/weekly-schedule?${params.toString()}`;
     console.log('🔗 Making API call to:', endpoint);
     console.log('📅 Date parameters:', {
-      start: start.toISOString(),
-      end: end.toISOString()
+      start: toLocalISOString(start),
+      end: toLocalISOString(end, true)
     });
-    
     const result = await apiRequest<WeeklyScheduleResponse>(endpoint);
     console.log('✅ API call successful, received:', result.length, 'trainings');
     return result;

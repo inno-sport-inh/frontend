@@ -7,6 +7,8 @@ const ClubsPage: React.FC = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Состояние для открытия описания по id клуба
+  const [descOpen, setDescOpen] = useState<{ [clubId: number]: boolean }>({});
 
   useEffect(() => {
     const fetchClubs = async () => {
@@ -26,12 +28,6 @@ const ClubsPage: React.FC = () => {
     fetchClubs();
   }, []);
 
-  // Function to calculate total free spots in club groups
-  const getTotalFreeSpots = (groups: ClubGroup[]): number => {
-    return groups.reduce((total, group) => {
-      return total + (group.capacity - group.current_enrollment);
-    }, 0);
-  };
 
   // Get upcoming trainings for all groups in a club
   const getAllUpcomingTrainings = (groups: ClubGroup[]): Array<{
@@ -147,56 +143,44 @@ const ClubsPage: React.FC = () => {
       {/* Clubs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 px-4">
         {clubs.map((club) => {
-          const totalFreeSpots = getTotalFreeSpots(club.groups);
-          
+          const upcomingTrainings = getAllUpcomingTrainings(club.groups).slice(0, 2);
           return (
             <div
               key={club.id}
-              className="innohassle-card overflow-hidden hover:shadow-lg transition-shadow duration-300"
+              className="innohassle-card flex flex-col justify-between h-[370px] sm:h-[350px] overflow-hidden hover:shadow-lg transition-shadow duration-300"
             >
-              {/* Club Header */}
-              <div className="bg-gradient-to-r from-brand-violet to-brand-violet/80 p-6 text-white">
-                <div className="flex items-center space-x-4">
-                  <div className="text-4xl">{getClubEmoji(club.name)}</div>
-                  <div>
-                    <h3 className="text-xl font-bold">{club.name}</h3>
-                    <p className="text-white/90 text-sm mt-1">{club.description}</p>
+              {/* Club Logo & Name */}
+              <div className="flex flex-col items-center py-6 bg-gradient-to-r from-brand-violet to-brand-violet/80">
+                <div className="text-5xl mb-2">{getClubEmoji(club.name)}</div>
+                {/* Collapsible Description */}
+                <div className="w-full flex flex-col items-center">
+                  <button
+                    className="text-xs text-white/80 underline mb-1 focus:outline-none"
+                    onClick={() => setDescOpen((prev) => ({ ...prev, [club.id]: !prev[club.id] }))}
+                  >
+                    {descOpen[club.id] ? 'Hide description' : 'Show description'}
+                  </button>
+                  <div
+                    className={`transition-all duration-300 text-white/90 text-sm text-center max-w-xs mx-auto ${descOpen[club.id] ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}
+                  >
+                    {club.description}
                   </div>
                 </div>
+                <h3 className="text-xl font-bold text-white mb-1 text-center">{club.name}</h3>
               </div>
-              
-              {/* Club Stats */}
-              <div className="p-6">
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-contrast">{club.total_groups}</div>
-                    <div className="text-sm text-inactive">Groups</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-contrast">{totalFreeSpots}</div>
-                    <div className="text-sm text-inactive">Free Spots</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-contrast">
-                      {getAllUpcomingTrainings(club.groups).length}
-                    </div>
-                    <div className="text-sm text-inactive">Sessions</div>
-                  </div>
-                </div>
-                
-                {/* Upcoming Sessions Preview */}
-                <div className="mb-4">
-                  <h4 className="font-medium text-contrast mb-2 flex items-center space-x-2">
+              {/* Upcoming Sessions */}
+              <div className="flex-1 flex flex-col justify-between p-6">
+                <div>
+                  <h4 className="font-medium text-contrast mb-2 flex items-center space-x-2 justify-center">
                     <Calendar size={16} className="text-brand-violet" />
                     <span>Upcoming Sessions</span>
                   </h4>
-                  
-                  {getAllUpcomingTrainings(club.groups).length === 0 ? (
-                    <p className="text-sm text-inactive">No upcoming sessions scheduled</p>
+                  {upcomingTrainings.length === 0 ? (
+                    <p className="text-sm text-inactive text-center">No upcoming sessions scheduled</p>
                   ) : (
                     <div className="space-y-2">
-                      {getAllUpcomingTrainings(club.groups).slice(0, 3).map((training, index) => (
-                        <div key={index} className="flex items-center space-x-2 text-sm">
+                      {upcomingTrainings.map((training, index) => (
+                        <div key={index} className="flex items-center justify-center space-x-2 text-sm">
                           <Clock size={12} className="text-brand-violet" />
                           <span className="text-contrast">
                             {new Date(training.start).toLocaleDateString('en-US', { 
@@ -211,27 +195,30 @@ const ClubsPage: React.FC = () => {
                               minute: '2-digit' 
                             })}
                           </span>
-                          <span className="text-xs text-brand-violet">
-                            {training.available_spots} spots left
-                          </span>
                         </div>
                       ))}
-                      
-                      {getAllUpcomingTrainings(club.groups).length > 3 && (
-                        <p className="text-xs text-inactive">
-                          +{getAllUpcomingTrainings(club.groups).length - 3} more sessions...
-                        </p>
-                      )}
                     </div>
                   )}
                 </div>
-                
-                <Link
-                  to={`/club/${club.id}`}
-                  className="innohassle-button-primary w-full py-3 flex items-center justify-center space-x-2"
-                >
-                  <span>View Details</span>
-                </Link>
+                {/* Actions */}
+                <div className="flex gap-2 mt-6 justify-center">
+                  <Link
+                    to={`/club/${club.id}`}
+                    className="innohassle-button-primary flex-1 py-2 flex items-center justify-center space-x-2"
+                  >
+                    <span>View Details</span>
+                  </Link>
+                  <button
+                    className="innohassle-button-secondary flex items-center gap-1 px-3 py-2 text-xs opacity-80 cursor-not-allowed"
+                    disabled
+                    title="Coming soon"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9.036 13.233l-0.376 4.19c0.54 0 0.775-0.232 1.06-0.509l2.544-2.432 5.28 3.857c0.967 0.534 1.66 0.253 1.902-0.893l3.448-16.19c0.314-1.293-0.495-1.8-1.32-1.48l-20.04 7.72c-1.37 0.527-1.353 1.285-0.234 1.626l5.13 1.6 11.91-7.36c0.56-0.36 1.07-0.16 0.65 0.23l-9.62 8.74z" fill="#229ED9"/>
+                    </svg>
+                    <span>Soon</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

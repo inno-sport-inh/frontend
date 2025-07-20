@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity, Dumbbell, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Users, UserCheck, AlertCircle, ChevronDown, ChevronUp, FileText, CheckCircle, Activity } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
 import SportInfoModal from '../components/SportInfoModal';
@@ -9,38 +9,12 @@ import { generateSessionId } from '../utils/sessionUtils';
 import { studentAPI } from '../services/studentAPI';
 import { studentService } from '../services/studentService';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
+import ScheduleProgressHeader from '../components/ScheduleProgressHeader';
+import SideActionsPanel from '../components/SideActionsPanel';
+import { formatWeekRange } from '../utils/dateUtils';
 
-// Utility functions for date handling
-const getWeekStart = (date: Date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  const weekStart = new Date(d.setDate(diff));
-  weekStart.setHours(0, 0, 0, 0); // Set to start of day
-  return weekStart;
-};
-
-const getWeekEnd = (date: Date) => {
-  const weekStart = getWeekStart(date);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999); // Set to end of day
-  return weekEnd;
-};
-
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  });
-};
-
-const formatWeekRange = (weekStart: Date) => {
-  const weekEnd = getWeekEnd(weekStart);
-  return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
-};
-
-interface Activity {
+// Тип для одной активности недели (чтобы не конфликтовать с иконкой Activity)
+type ScheduleActivity = {
   id: string;
   activity: string;
   time: string;
@@ -53,79 +27,50 @@ interface Activity {
   isRegistrationOpen: boolean;
   groupId: number;
   trainingId: number;
-}
+};
 
-// Fixed weekly schedule - same activities every week
-const WEEKLY_SCHEDULE = [
-  { day: 'Monday', activities: [
-    { activity: 'Basketball', time: '09:00 - 10:30', maxParticipants: 12 },
-    { activity: 'Swimming', time: '14:00 - 15:30', maxParticipants: 15 },
-    { activity: 'Gym Training', time: '18:00 - 19:30', maxParticipants: 10 }
-  ]},
-  { day: 'Tuesday', activities: [
-    { activity: 'Table Tennis', time: '11:00 - 12:30', maxParticipants: 8 },
-    { activity: 'Volleyball', time: '16:00 - 17:30', maxParticipants: 14 },
-    { activity: 'Yoga', time: '19:00 - 20:30', maxParticipants: 20 }
-  ]},
-  { day: 'Wednesday', activities: [
-    { activity: 'Tennis', time: '09:00 - 10:30', maxParticipants: 6 },
-    { activity: 'Basketball', time: '14:00 - 15:30', maxParticipants: 12 },
-    { activity: 'Swimming', time: '18:00 - 19:30', maxParticipants: 15 }
-  ]},
-  { day: 'Thursday', activities: [
-    { activity: 'Football', time: '11:00 - 12:30', maxParticipants: 16 },
-    { activity: 'Gym Training', time: '16:00 - 17:30', maxParticipants: 10 },
-    { activity: 'Table Tennis', time: '19:00 - 20:30', maxParticipants: 8 }
-  ]},
-  { day: 'Friday', activities: [
-    { activity: 'Volleyball', time: '09:00 - 10:30', maxParticipants: 14 },
-    { activity: 'Yoga', time: '14:00 - 15:30', maxParticipants: 20 },
-    { activity: 'Basketball', time: '18:00 - 19:30', maxParticipants: 12 }
-  ]},
-  { day: 'Saturday', activities: [
-    { activity: 'Tennis', time: '11:00 - 12:30', maxParticipants: 6 },
-    { activity: 'Football', time: '16:00 - 17:30', maxParticipants: 16 }
-  ]},
-  { day: 'Sunday', activities: [
-    { activity: 'Swimming', time: '09:00 - 10:30', maxParticipants: 15 },
-    { activity: 'Yoga', time: '19:00 - 20:30', maxParticipants: 20 }
-  ]}
-];
+// Utility functions for date handling
+const getWeekStart = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  const weekStart = new Date(d.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0); // Set to start of day
+  return weekStart;
+};
 
-const generateWeekActivities = async (weekStart: Date): Promise<Activity[]> => {
-  const weekEnd = getWeekEnd(weekStart);
-  
-  console.log('🗓️ Fetching schedule for week:', {
-    weekStart: weekStart.toISOString(),
-    weekEnd: weekEnd.toISOString(),
-    weekStartLocal: weekStart.toLocaleDateString(),
-    weekEndLocal: weekEnd.toLocaleDateString()
+
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
   });
-  
+};
+
+
+// Получить расписание недели с API или вернуть моковые данные
+// @ts-ignore
+const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity[]> => {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
   try {
     const trainings = await studentAPI.getWeeklySchedule(weekStart, weekEnd);
-    console.log('📊 Received trainings from API:', trainings.length, 'trainings');
-    console.log('📋 Raw API response:', trainings);
     const now = new Date();
-    
-    return trainings.map((training) => {
+    return trainings.map((training: any) => {
       const startTime = new Date(training.start);
       const endTime = new Date(training.end);
       const isPastActivity = endTime < now;
-      
       // Check if registration is open (registration opens exactly 1 week before activity starts)
       const registrationOpenTime = new Date(startTime);
       registrationOpenTime.setDate(registrationOpenTime.getDate() - 7);
       const isRegistrationOpen = now >= registrationOpenTime;
-      
       // Generate consistent session ID
       const sessionId = generateSessionId(
-        training.group_name,
-        startTime.toLocaleDateString('en-US', { weekday: 'long' }),
-        `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
-        startTime
+          training.group_name,
+          startTime.toLocaleDateString('en-US', { weekday: 'long' }),
+          `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+          startTime
       );
-      
       return {
         id: sessionId,
         activity: training.group_name,
@@ -143,68 +88,7 @@ const generateWeekActivities = async (weekStart: Date): Promise<Activity[]> => {
     });
   } catch (error) {
     console.error('Error fetching weekly schedule:', error);
-    // Fallback to mock data if API fails
-    return generateMockWeekActivities(weekStart);
   }
-};
-
-const generateMockWeekActivities = (weekStart: Date): Activity[] => {
-  const activities: Activity[] = [];
-  const now = new Date();
-  
-  WEEKLY_SCHEDULE.forEach((daySchedule, dayIndex) => {
-    const currentDate = new Date(weekStart);
-    currentDate.setDate(weekStart.getDate() + dayIndex);
-    
-    daySchedule.activities.forEach((activityTemplate) => {
-      // Parse activity start time
-      const [startTimeStr] = activityTemplate.time.split(' - ');
-      const [startHour, startMinute] = startTimeStr.split(':').map(Number);
-      
-      const activityStartTime = new Date(currentDate);
-      activityStartTime.setHours(startHour, startMinute, 0, 0);
-      
-      // Parse activity end time
-      const [, endTimeStr] = activityTemplate.time.split(' - ');
-      const [endHour, endMinute] = endTimeStr.split(':').map(Number);
-      
-      const activityEndTime = new Date(currentDate);
-      activityEndTime.setHours(endHour, endMinute, 0, 0);
-      
-      // Check if activity has passed
-      const isPastActivity = activityEndTime < now;
-      
-      // Check if registration is open (registration opens exactly 1 week before activity starts)
-      const registrationOpenTime = new Date(activityStartTime);
-      registrationOpenTime.setDate(registrationOpenTime.getDate() - 7);
-      const isRegistrationOpen = now >= registrationOpenTime;
-      
-      // Generate consistent session ID
-      const sessionId = generateSessionId(
-        activityTemplate.activity,
-        daySchedule.day,
-        activityTemplate.time,
-        currentDate
-      );
-      
-      activities.push({
-        id: sessionId,
-        activity: activityTemplate.activity,
-        time: activityTemplate.time,
-        dayOfWeek: daySchedule.day,
-        date: new Date(currentDate),
-        status: isPastActivity ? 'past' : 'free',
-        maxParticipants: activityTemplate.maxParticipants,
-        currentParticipants: Math.floor(Math.random() * 4) + 2, // Random current participants for demo
-        isPast: isPastActivity,
-        isRegistrationOpen: isRegistrationOpen,
-        groupId: Math.floor(Math.random() * 100) + 1, // Mock group ID
-        trainingId: Math.floor(Math.random() * 1000) + 1 // Mock training ID
-      });
-    });
-  });
-  
-  return activities;
 };
 
 const SchedulePage: React.FC = () => {
@@ -215,7 +99,7 @@ const SchedulePage: React.FC = () => {
   const [dailyLimitError, setDailyLimitError] = useState<string>('');
   const [medicalReferenceSuccess, setMedicalReferenceSuccess] = useState<string>('');
   const [showSelfSportModal, setShowSelfSportModal] = useState(false);
-  
+
   // Local function to check if user is enrolled in activity
   const isEnrolled = (activityId: string) => {
     const activity = weekActivities.find(a => a.id === activityId);
@@ -231,7 +115,7 @@ const SchedulePage: React.FC = () => {
       const isSameDate = activityDateString === targetDateString;
       return isSameDate && isBooked;
     });
-    
+
     console.log(`🔍 Counting booked sessions for ${targetDateString}:`, {
       targetDate: targetDateString,
       allActivitiesForDate: weekActivities.filter(a => a.date.toDateString() === targetDateString).map(a => ({
@@ -246,7 +130,7 @@ const SchedulePage: React.FC = () => {
         status: a.status
       }))
     });
-    
+
     return bookedActivities.length;
   };
 
@@ -254,14 +138,14 @@ const SchedulePage: React.FC = () => {
   const canBookOnDate = (targetDate: Date) => {
     const bookedCount = getBookedSessionsOnDate(targetDate);
     const canBook = bookedCount < 2;
-    
+
     console.log(`🤔 Can book on ${targetDate.toDateString()}?`, {
       bookedCount,
       limit: 2,
       canBook,
       targetDate: targetDate.toDateString()
     });
-    
+
     return canBook;
   };
   const [showSportInfoModal, setShowSportInfoModal] = useState(false);
@@ -270,7 +154,7 @@ const SchedulePage: React.FC = () => {
     // Initialize with current week (not hardcoded date)
     return getWeekStart(new Date());
   });
-  const [weekActivities, setWeekActivities] = useState<Activity[]>([]);
+  const [weekActivities, setWeekActivities] = useState<ScheduleActivity[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pastDaysCollapsed, setPastDaysCollapsed] = useState(true);
   const [isModalLoading, setIsModalLoading] = useState(false);
@@ -305,14 +189,14 @@ const SchedulePage: React.FC = () => {
         // Get profile first since it contains all the hours data we need
         const profile = await studentService.getProfile();
         const percentile = await studentService.getStudentPercentile();
-        
+
         // Calculate progress directly from profile data
         const progress = studentService.calculateProgressFromProfile(profile);
-        
+
         setStudentProgress(progress);
         setStudentPercentile(percentile);
         setStudentProfile(profile);
-        
+
         console.log('📊 Student data loaded:', {
           profile,
           progress,
@@ -350,13 +234,13 @@ const SchedulePage: React.FC = () => {
         // Parse end time to check if activity has passed
         const [, endTimeStr] = activity.time.split(' - ');
         const [endHour, endMinute] = endTimeStr.split(':').map(Number);
-        
+
         const activityEndTime = new Date(activity.date);
         activityEndTime.setHours(endHour, endMinute, 0, 0);
-        
+
         const now = new Date();
         const isPastActivity = activityEndTime < now;
-        
+
         return {
           ...activity,
           isPast: isPastActivity,
@@ -367,7 +251,7 @@ const SchedulePage: React.FC = () => {
 
     // Set up interval to update every minute
     const interval = setInterval(updateActivityStatus, 60000);
-    
+
     return () => clearInterval(interval);
   }, []); // No dependencies needed
 
@@ -424,16 +308,16 @@ const SchedulePage: React.FC = () => {
 
       // Make API call to check in
       await studentAPI.checkIn(activity.trainingId);
-      
+
       // Update local state to reflect the change
       setWeekActivities(prev => prev.map(activity =>
-        activity.id === activityId
-          ? { 
-              ...activity, 
-              status: 'booked' as const,
-              currentParticipants: activity.currentParticipants + 1
-            }
-          : activity
+          activity.id === activityId
+              ? {
+                ...activity,
+                status: 'booked' as const,
+                currentParticipants: activity.currentParticipants + 1
+              }
+              : activity
       ));
     } catch (error) {
       console.error('Error enrolling in session:', error);
@@ -444,7 +328,7 @@ const SchedulePage: React.FC = () => {
     if (selectedActivity) {
       try {
         setIsModalLoading(true);
-        
+
         const activity = weekActivities.find(a => a.id === selectedActivity.id);
         if (!activity || !activity.trainingId) {
           console.error('Training not found or missing trainingId');
@@ -453,16 +337,16 @@ const SchedulePage: React.FC = () => {
 
         // Make API call to cancel check-in
         await studentAPI.cancelCheckIn(activity.trainingId);
-        
+
         // Update local state to reflect the change
         setWeekActivities(prev => prev.map(activity =>
-          activity.id === selectedActivity.id
-            ? { 
-                ...activity, 
-                status: 'free' as const,
-                currentParticipants: Math.max(activity.currentParticipants - 1, 0)
-              }
-            : activity
+            activity.id === selectedActivity.id
+                ? {
+                  ...activity,
+                  status: 'free' as const,
+                  currentParticipants: Math.max(activity.currentParticipants - 1, 0)
+                }
+                : activity
         ));
         setShowCancelModal(false);
         setSelectedActivity(null);
@@ -483,27 +367,27 @@ const SchedulePage: React.FC = () => {
     return weekActivities.filter(activity => activity.dayOfWeek === day);
   };
 
-  const isActivityFull = (activity: Activity) => {
+  const isActivityFull = (activity: ScheduleActivity) => {
     return activity.currentParticipants >= activity.maxParticipants;
   };
 
-  const getActivityStatus = (activity: Activity) => {
+  const getActivityStatus = (activity: ScheduleActivity) => {
     if (activity.isPast) return 'past';
     // Check if user is enrolled/checked in based on the activity data
     return activity.status; // This now comes from the API (checked_in field)
   };
 
-  const getParticipantsBadgeStyle = (activity: Activity) => {
+  const getParticipantsBadgeStyle = (activity: ScheduleActivity) => {
     const availableSpots = activity.maxParticipants - activity.currentParticipants;
-    
+
     if (availableSpots === 0) return 'innohassle-badge-error';
     if (availableSpots <= 3) return 'innohassle-badge-warning';
     return 'innohassle-badge-success';
   };
 
-  const getParticipantsText = (activity: Activity) => {
+  const getParticipantsText = (activity: ScheduleActivity) => {
     const availableSpots = activity.maxParticipants - activity.currentParticipants;
-    
+
     if (availableSpots === 0) {
       return 'Full';
     } else if (availableSpots === 1) {
@@ -517,53 +401,53 @@ const SchedulePage: React.FC = () => {
     const dayDate = new Date(currentWeekStart);
     dayDate.setDate(currentWeekStart.getDate() + index);
     dayDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of today
-    
+
     const isToday = dayDate.getTime() === today.getTime();
     const isPastDay = dayDate < today;
-    
+
     return (
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className={`text-xl font-semibold ${
-            isToday 
-              ? 'text-brand-violet' 
-              : isPastDay 
-              ? 'text-inactive opacity-50' 
-              : 'text-contrast'
-          }`}>
-            {dayName}
-          </h3>
-          <p className={`text-sm ${
-            isPastDay ? 'text-inactive opacity-40' : 'text-inactive'
-          }`}>
-            {formatDate(dayDate)}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          {isToday && (
-            <span className="innohassle-badge-primary text-xs px-2 py-1">Today</span>
-          )}
-          {isPastDay && (
-            <button
-              onClick={() => setPastDaysCollapsed(!pastDaysCollapsed)}
-              className="flex items-center space-x-1 text-inactive hover:text-contrast transition-colors p-1"
-              title={pastDaysCollapsed ? 'Expand past day' : 'Collapse past day'}
-            >
-              {pastDaysCollapsed ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronUp size={16} />
-              )}
-              <span className="text-xs">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className={`text-xl font-semibold ${
+                isToday
+                    ? 'text-brand-violet'
+                    : isPastDay
+                        ? 'text-inactive opacity-50'
+                        : 'text-contrast'
+            }`}>
+              {dayName}
+            </h3>
+            <p className={`text-sm ${
+                isPastDay ? 'text-inactive opacity-40' : 'text-inactive'
+            }`}>
+              {formatDate(dayDate)}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            {isToday && (
+                <span className="innohassle-badge-primary text-xs px-2 py-1">Today</span>
+            )}
+            {isPastDay && (
+                <button
+                    onClick={() => setPastDaysCollapsed(!pastDaysCollapsed)}
+                    className="flex items-center space-x-1 text-inactive hover:text-contrast transition-colors p-1"
+                    title={pastDaysCollapsed ? 'Expand past day' : 'Collapse past day'}
+                >
+                  {pastDaysCollapsed ? (
+                      <ChevronDown size={16} />
+                  ) : (
+                      <ChevronUp size={16} />
+                  )}
+                  <span className="text-xs">
                 {pastDaysCollapsed ? 'Show' : 'Hide'}
               </span>
-            </button>
-          )}
+                </button>
+            )}
+          </div>
         </div>
-      </div>
     );
   };
 
@@ -579,977 +463,698 @@ const SchedulePage: React.FC = () => {
   };
 
   return (
-    <div 
-      className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding relative" 
-      style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}
-    >
-      {/* Side actions panel */}
-      {(isStudent || isAdmin) && (
-        <div className="hidden lg:flex flex-col gap-4 fixed right-8 top-32 z-40">
-          {isStudent && (
-            <a
-              href="/fitness-test"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-contrast shadow transition-colors"
-            >
-              <Dumbbell size={18} />
-я              <span>Fitness Test</span>
-            </a>
-          )}
-          {isAdmin && (
-            <a
-              href="http://t9d.store/admin/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-contrast shadow transition-colors"
-            >
-              <Settings size={18} />
-              <span>Admin Panel</span>
-            </a>
-          )}
-        </div>
-      )}
-      {/* Daily Limit Error Message */}
-      {dailyLimitError && (
-        <div className="innohassle-card p-4 bg-gradient-to-r from-error-500/10 to-error-500/5 border-2 border-error-500/30 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-error-500/20 rounded-xl flex items-center justify-center">
-              <AlertCircle size={20} className="text-error-500" />
+      <div
+          className="max-w-7xl mx-auto space-y-6 mobile-content-bottom-padding relative"
+          style={{ backgroundColor: 'rgb(var(--color-pagebg))' }}
+      >
+        {/* Side actions panel */}
+        <SideActionsPanel isStudent={isStudent} isAdmin={isAdmin} />
+        {/* Daily Limit Error Message */}
+        {dailyLimitError && (
+            <div className="innohassle-card p-4 bg-gradient-to-r from-error-500/10 to-error-500/5 border-2 border-error-500/30 animate-in slide-in-from-top duration-300">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-error-500/20 rounded-xl flex items-center justify-center">
+                  <AlertCircle size={20} className="text-error-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-error-500">Registration Limit Reached</h3>
+                  <p className="text-sm text-error-500/80">{dailyLimitError}</p>
+                </div>
+                <button
+                    onClick={() => setDailyLimitError('')}
+                    className="ml-auto w-8 h-8 flex items-center justify-center bg-error-500/20 hover:bg-error-500/30 rounded-lg transition-colors text-error-500"
+                >
+                  <span className="text-lg">×</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-error-500">Registration Limit Reached</h3>
-              <p className="text-sm text-error-500/80">{dailyLimitError}</p>
-            </div>
-            <button
-              onClick={() => setDailyLimitError('')}
-              className="ml-auto w-8 h-8 flex items-center justify-center bg-error-500/20 hover:bg-error-500/30 rounded-lg transition-colors text-error-500"
-            >
-              <span className="text-lg">×</span>
-            </button>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Medical Reference Success Message */}
-      {medicalReferenceSuccess && (
-        <div className="innohassle-card p-4 bg-gradient-to-r from-success-500/10 to-success-500/5 border-2 border-success-500/30 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-success-500/20 rounded-xl flex items-center justify-center">
-              <CheckCircle size={20} className="text-success-500" />
+        {/* Medical Reference Success Message */}
+        {medicalReferenceSuccess && (
+            <div className="innohassle-card p-4 bg-gradient-to-r from-success-500/10 to-success-500/5 border-2 border-success-500/30 animate-in slide-in-from-top duration-300">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-success-500/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle size={20} className="text-success-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-success-500">Medical Certificate Uploaded</h3>
+                  <p className="text-sm text-success-500/80">{medicalReferenceSuccess}</p>
+                </div>
+                <button
+                    onClick={() => setMedicalReferenceSuccess('')}
+                    className="ml-auto w-8 h-8 flex items-center justify-center bg-success-500/20 hover:bg-success-500/30 rounded-lg transition-colors text-success-500"
+                >
+                  <span className="text-lg">×</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-success-500">Medical Certificate Uploaded</h3>
-              <p className="text-sm text-success-500/80">{medicalReferenceSuccess}</p>
-            </div>
-            <button
-              onClick={() => setMedicalReferenceSuccess('')}
-              className="ml-auto w-8 h-8 flex items-center justify-center bg-success-500/20 hover:bg-success-500/30 rounded-lg transition-colors text-success-500"
-            >
-              <span className="text-lg">×</span>
-            </button>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Progress Header */}
-      <div className="relative overflow-hidden innohassle-card p-4 sm:p-6 bg-gradient-to-br from-brand-violet/5 via-transparent to-brand-violet/10 border-2 border-brand-violet/20 hover:border-brand-violet/30 transition-all duration-300 shadow-lg shadow-brand-violet/5">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-violet/10 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-brand-violet/10 to-transparent rounded-full blur-2xl translate-y-12 -translate-x-12"></div>
-        
-        <div className="relative text-center">
-          <div className="mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 mb-3 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand-violet to-brand-violet/80 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🏃</span>
-              </div>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-              {studentProfile ? `${studentProfile.student_info?.name || studentProfile.name || 'User'}'s Sport Progress` : 'Your Sport Progress'}
-            </h2>
-            
-            {/* Trainer Information */}
-            {studentProfile && studentService.isTrainer(studentProfile) && (
-              <div className="mb-4">
-                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg">
-                  <span className="text-lg">👨‍🏫</span>
-                  <span className="text-white text-sm font-semibold">Teacher</span>
-                </div>
-                {studentProfile.trainer_info && studentProfile.trainer_info.groups && studentProfile.trainer_info.groups.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-sm text-inactive mb-2">Teaching groups:</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {studentProfile.trainer_info.groups.map((group: { id: number; name: string }) => (
-                        <div key={group.id} className="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-gradient-to-r from-secondary/50 to-secondary/30 border border-secondary/50">
-                          <span className="text-xs">🏃</span>
-                          <span className="text-xs font-medium text-contrast">{group.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Титул пользователя */}
-            {studentProfile && (studentProfile.student_info?.medical_group || studentProfile.medical_group) && (
-              <div className="mb-3">
-                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-brand-violet to-brand-violet/80">
-                  <span className="text-sm">🏥</span>
-                  <span className="text-white text-sm font-medium">
-                    {studentProfile.student_info?.medical_group || studentProfile.medical_group}
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            <p className="text-sm sm:text-base text-inactive">
-              You've completed <span className="font-semibold text-brand-violet">{studentProgress.completedHours}</span> out of <span className="font-semibold text-contrast">{studentProgress.totalHours}</span> required hours this semester
-              {studentProgress.completedHours > studentProgress.totalHours && (
-                <span className="block mt-1 text-success-500 font-medium">
-                  🎉 Exceeded requirement by {studentProgress.completedHours - studentProgress.totalHours} hours!
-                </span>
-              )}
-            </p>
-          </div>
-          
-          {/* Умный Progress Bar с разными типами часов */}
-          <div className="max-w-lg mx-auto">
-            <div className="flex items-center justify-between text-xs sm:text-sm text-inactive mb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-brand-violet rounded-full animate-pulse"></div>
-                <span className="font-semibold">
-                  {studentProgress.completedHours} of {studentProgress.totalHours} hours
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-secondary rounded-full"></div>
-                <span className="font-medium">
-                  {studentProgress.completedHours >= studentProgress.totalHours 
-                    ? `+${studentProgress.completedHours - studentProgress.totalHours} extra`
-                    : `${studentProgress.totalHours - studentProgress.completedHours} remaining`
-                  }
-                </span>
-              </div>
-            </div>
-            
-            {/* Умный прогресс-бар с сегментами */}
-            <div className="relative w-full py-1">
-              <div className="w-full bg-gradient-to-r from-secondary/50 to-secondary/30 rounded-2xl h-8 shadow-inner border border-secondary/50 relative overflow-hidden">
-                {/* Background pattern */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-2xl"></div>
-                
-                {/* Основные часы */}
-                {(() => {
-                  const regularHours = Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours);
-                  const regularPercentage = Math.min((regularHours / studentProgress.totalHours) * 100, 100);
-                  
-                  return regularPercentage > 0 && (
-                    <div 
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-l-2xl transition-all duration-1000 ease-out"
-                      style={{ width: `${regularPercentage}%` }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-[shimmer_3s_ease-in-out_infinite]"></div>
-                    </div>
-                  );
-                })()}
-                
-                {/* Self-sport часы */}
-                {(() => {
-                  const regularHours = Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours);
-                  const regularPercentage = Math.min((regularHours / studentProgress.totalHours) * 100, 100);
-                  const selfSportPercentage = Math.min((studentProgress.selfSportHours / studentProgress.totalHours) * 100, 100 - regularPercentage);
-                  
-                  return selfSportPercentage > 0 && (
-                    <div 
-                      className="absolute top-0 h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-1000 ease-out"
-                      style={{ 
-                        left: `${regularPercentage}%`,
-                        width: `${selfSportPercentage}%`,
-                        borderRadius: regularPercentage === 0 ? '1rem 0 0 1rem' : '0'
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-[shimmer_3s_ease-in-out_infinite]"></div>
-                    </div>
-                  );
-                })()}
-                
-                {/* Превышение требования */}
-                {(() => {
-                  const excessPercentage = studentProgress.completedHours > studentProgress.totalHours 
-                    ? Math.min(((studentProgress.completedHours - studentProgress.totalHours) / studentProgress.totalHours) * 100, 50)
-                    : 0;
-                  
-                  return excessPercentage > 0 && (
-                    <div 
-                      className="absolute top-0 h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-r-2xl transition-all duration-1000 ease-out animate-pulse"
-                      style={{ 
-                        left: '100%',
-                        width: `${excessPercentage}%`,
-                        transform: 'translateX(-100%)'
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-[shimmer_2s_ease-in-out_infinite]"></div>
-                    </div>
-                  );
-                })()}
-                
-                {/* Долг (если есть) */}
-                {studentProgress.debt > 0 && (
-                  <div 
-                    className="absolute right-0 top-0 h-full bg-gradient-to-r from-red-500 to-red-600 rounded-r-2xl border-2 border-red-400 transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min((studentProgress.debt / studentProgress.totalHours) * 100, 30)}%` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-[shimmer_1.5s_ease-in-out_infinite]"></div>
-                  </div>
-                )}
-                
-                {/* Milestone markers */}
-                <div className="absolute inset-0 flex items-center overflow-hidden rounded-2xl">
-                  {[25, 50, 75, 100].map((milestone) => (
-                    <div
-                      key={milestone}
-                      className="absolute top-0 bottom-0 w-0.5 bg-white/40"
-                      style={{ left: `${milestone}%` }}
-                    >
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
-                      <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-inactive font-medium">
-                        {milestone}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            {/* Легенда */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
-                <span className="text-contrast font-medium">
-                  Training hours: {Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours)}
-                </span>
-              </div>
-              
-              {studentProgress.selfSportHours > 0 && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-                  <span className="text-contrast font-medium">
-                    Self-sport: {studentProgress.selfSportHours}
-                  </span>
-                </div>
-              )}
-              
-              {studentProgress.completedHours > studentProgress.totalHours && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"></div>
-                  <span className="text-contrast font-medium">
-                    Excess: {studentProgress.completedHours - studentProgress.totalHours}
-                  </span>
-                </div>
-              )}
-              
-              {studentProgress.debt > 0 && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full"></div>
-                  <span className="text-contrast font-medium">
-                    Debt: {studentProgress.debt}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Progress Stats */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 px-4 py-2 rounded-xl border border-brand-violet/20">
-              <div className="w-2 h-2 bg-brand-violet rounded-full"></div>
-              <span className="text-sm font-bold text-contrast">
-                {studentProgress.progressPercentage.toFixed(1)}% Complete
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-2 bg-gradient-to-r from-success-500/10 to-success-500/5 px-4 py-2 rounded-xl border border-success-500/20">
-              <span className="text-lg">🎯</span>
-              <span className="text-sm font-bold text-success-500">
-                Top {studentPercentile}% Performer
-              </span>
-            </div>
-            
-            {studentProgress.progressPercentage >= 100 && (
-              <div className="flex items-center space-x-2 bg-gradient-to-r from-brand-violet/20 to-brand-violet/10 px-4 py-2 rounded-xl border border-brand-violet/30 animate-bounce">
-                <span className="text-lg">🏆</span>
-                <span className="text-sm font-bold text-brand-violet">
-                  Goal Achieved!
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Motivational Message */}
-          <div className="mt-4 text-center">
-            <p className="text-sm text-inactive">
-              {studentProgress.progressPercentage >= 100 
-                ? "Congratulations! You've completed all required hours!" 
-                : studentProgress.progressPercentage >= 75 
-                ? "You're almost there! Keep it up!" 
-                : studentProgress.progressPercentage >= 50 
-                ? "Great progress! You're halfway there!" 
-                : studentProgress.progressPercentage >= 25 
-                ? "Good start! Keep building momentum!" 
-                : "Let's get started on your fitness journey!"
-              }
-            </p>
-            {studentProgress.progressPercentage < 100 && (
-              <p className="text-xs text-inactive mt-1">
-                Estimated time to completion: {Math.ceil(Math.max((studentProgress.totalHours - studentProgress.completedHours), 0) / 2)} weeks
-              </p>
-            )}
-            {studentProgress.progressPercentage >= 100 && studentProgress.completedHours > studentProgress.totalHours && (
-              <p className="text-xs text-success-500 mt-1 font-medium">
-                You've exceeded the requirement by {studentProgress.completedHours - studentProgress.totalHours} hours! 🌟
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+        {/* Progress Header */}
+        <ScheduleProgressHeader
+            studentProfile={studentProfile}
+            studentProgress={studentProgress}
+            studentPercentile={studentPercentile}
+        />
 
-      {/* Header */}
-      <div className="text-center sm:text-left">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">📅</span>
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-contrast">Weekly Schedule</h1>
-              <p className="text-inactive text-sm sm:text-base">Enroll in your training sessions for the week</p>
-            </div>
-          </div>
-          
-          {/* Medical Reference Button */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowMedicalModal(true)}
-              className="innohassle-button-primary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105"
-            >
-              <FileText size={16} />
-              <span className="hidden sm:inline">Medical Reference</span>
-              <span className="sm:hidden">Medical</span>
-            </button>
-            
-            <button
-              onClick={() => setShowSelfSportModal(true)}
-              className="innohassle-button-secondary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105 border-2 border-blue-500/30 hover:border-blue-500/50"
-            >
-              <Activity size={16} />
-              <span className="hidden sm:inline">Self-Sport</span>
-              <span className="sm:hidden">Sport</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Week Navigation */}
-      <div className="flex items-center justify-between gap-4 innohassle-card p-4 sm:p-6 bg-gradient-to-r from-floating to-primary/50 border-2 border-secondary/50 hover:border-brand-violet/30 transition-all duration-300">
-        <button 
-          onClick={handlePreviousWeek}
-          className="group innohassle-button-secondary px-4 sm:px-6 py-3 flex items-center space-x-2 flex-shrink-0 hover:scale-105 transition-transform duration-200"
-        >
-          <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-200" />
-          <span className="hidden xs:inline sm:hidden font-medium">Prev</span>
-          <span className="hidden sm:inline font-medium">Previous week</span>
-        </button>
-        
-        <div className="text-center flex-1 min-w-0">
-          <h3 className="text-lg sm:text-xl font-bold text-contrast truncate bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-            {formatWeekRange(currentWeekStart)}
-          </h3>
-          <p className="text-xs sm:text-sm text-inactive mt-1 font-medium">
-            {currentWeekStart.getFullYear()}
-          </p>
-        </div>
-        
-        <button 
-          onClick={handleNextWeek}
-          className="group innohassle-button-secondary px-4 sm:px-6 py-3 flex items-center space-x-2 flex-shrink-0 hover:scale-105 transition-transform duration-200"
-        >
-          <span className="hidden xs:inline sm:hidden font-medium">Next</span>
-          <span className="hidden sm:inline font-medium">Next week</span>
-          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
-        </button>
-      </div>
-
-      {/* Past Days Control - only show if there are past days */}
-      {(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of today
-        
-        const hasPastDays = daysOfWeek.some((_, index) => {
-          const dayDate = new Date(currentWeekStart);
-          dayDate.setDate(currentWeekStart.getDate() + index);
-          dayDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-          return dayDate < today;
-        });
-        
-        if (!hasPastDays) return null;
-        
-        return (
-          <div className="flex items-center justify-between innohassle-card p-4 sm:p-6 bg-gradient-to-r from-primary/30 to-secondary/20 border-2 border-secondary/50 hover:border-inactive/50 transition-all duration-300">
+        {/* Header */}
+        <div className="text-center sm:text-left">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-inactive/20 to-inactive/10 rounded-xl flex items-center justify-center">
-                <Clock size={20} className="text-inactive" />
+              <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
+                <span className="text-2xl">📅</span>
               </div>
               <div>
-                <span className="text-contrast font-semibold">Past Days</span>
-                <p className="text-sm text-inactive">Activities that have ended</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-contrast">Weekly Schedule</h1>
+                <p className="text-inactive text-sm sm:text-base">Enroll in your training sessions for the week</p>
               </div>
             </div>
-            <button
-              onClick={() => setPastDaysCollapsed(!pastDaysCollapsed)}
-              className="group flex items-center space-x-2 text-brand-violet hover:text-brand-violet/80 transition-all duration-200 bg-brand-violet/10 hover:bg-brand-violet/20 px-4 py-2 rounded-xl"
-            >
-              {pastDaysCollapsed ? (
-                <>
-                  <ChevronDown size={18} className="group-hover:translate-y-0.5 transition-transform duration-200" />
-                  <span className="text-sm font-medium">Show Past Days</span>
-                </>
-              ) : (
-                <>
-                  <ChevronUp size={18} className="group-hover:-translate-y-0.5 transition-transform duration-200" />
-                  <span className="text-sm font-medium">Hide Past Days</span>
-                </>
-              )}
-            </button>
-          </div>
-        );
-      })()}
 
-      {/* Weekly Schedule Grid */}
-      <div className="space-y-3">
-        {daysOfWeek.map((day, index) => {
-          const dayActivities = getActivitiesForDay(day);
-          const dayDate = new Date(currentWeekStart);
-          dayDate.setDate(currentWeekStart.getDate() + index);
-          dayDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-          
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Set to start of today
-          const isPastDay = dayDate < today;
-          
-          // Skip rendering past days if collapsed
-          if (isPastDay && pastDaysCollapsed) {
-            return null;
-          }
-          
-          return (
-            <div key={day} className="group innohassle-card overflow-hidden border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform rounded-lg">
-              {/* Day Header */}
-              <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-2 py-2 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
-                {getDayHeader(day, index)}
-              </div>
-              
-              {/* Activities */}
-              <div className="p-2 space-y-2 bg-gradient-to-b from-floating to-primary/20">
-                {isLoadingActivities ? (
-                  <div className="text-center py-12 text-inactive">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
-                      <div className="animate-spin w-8 h-8 border-2 border-brand-violet border-t-transparent rounded-full"></div>
-                    </div>
-                    <p className="font-medium">Loading activities...</p>
-                    <p className="text-sm mt-1 opacity-75">Please wait while we fetch the latest schedule</p>
-                  </div>
-                ) : dayActivities.length === 0 ? (
-                  <div className="text-center py-12 text-inactive">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-secondary/30 to-secondary/20 rounded-2xl flex items-center justify-center">
-                      <Clock size={32} className="opacity-50" />
-                    </div>
-                    <p className="font-medium">No activities scheduled for this day</p>
-                    <p className="text-sm mt-1 opacity-75">Check back later for updates</p>
-                  </div>
-                ) : (
-                  dayActivities.map((activity) => {
-                    const isFull = isActivityFull(activity);
-                    const activityStatus = getActivityStatus(activity);
-                    const hasReachedDailyLimit = !canBookOnDate(activity.date);
-                    const canBook = activityStatus === 'free' && !isFull && !activity.isPast && activity.isRegistrationOpen && !hasReachedDailyLimit;
-                    
-                    // Debug logging for button states
-                    console.log(`🔍 Activity ${activity.activity} at ${activity.time} on ${activity.date.toDateString()}:`, {
-                      activityStatus,
-                      isFull,
-                      isPast: activity.isPast,
-                      isRegistrationOpen: activity.isRegistrationOpen,
-                      hasReachedDailyLimit,
-                      canBook,
-                      bookedSessionsOnDate: getBookedSessionsOnDate(activity.date)
-                    });
-                    
-                    return (
-                      <div
-                        key={activity.id}
-                        className={`group/activity p-3 sm:p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
-                          activityStatus === 'booked' 
-                            ? 'border-brand-violet bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 shadow-lg shadow-brand-violet/20 hover:shadow-brand-violet/30' 
-                            : activity.isPast
-                            ? 'activity-past opacity-60 hover:opacity-80'
-                            : !activity.isRegistrationOpen
-                            ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 border-secondary/50 hover:border-secondary/70'
-                            : isFull || hasReachedDailyLimit
-                            ? 'bg-gradient-to-r from-error-500/10 to-error-500/5 border-error-500/30 hover:border-error-500/50'
-                            : 'bg-gradient-to-r from-floating to-primary/30 border-secondary/30 hover:border-brand-violet/50 hover:from-brand-violet/5 hover:to-brand-violet/10 hover:shadow-lg hover:shadow-brand-violet/10'
-                        }`}
-                        onClick={() => openActivityModal(activity)}
-                      >
-                        {/* Mobile Layout - Only time and name */}
-                        <div className="block sm:hidden">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <div className={`flex items-center space-x-1 cursor-pointer ${
-                                activity.isPast ? 'text-inactive' : 'text-contrast'
-                              }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSportClick(activity.activity);
-                                }}
-                              >
-                                <Clock size={14} />
-                                <span className="font-medium text-xs hover:text-brand-violet transition-colors">{activity.time}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users size={14} className="text-inactive" />
-                                <span className="text-contrast font-medium text-xs">{activity.activity}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              {activityStatus === 'booked' && (
-                                <div className="innohassle-badge innohassle-badge-primary text-xs">
-                                  ✓ Enrolled
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+            {/* Medical Reference Button */}
+            <div className="flex items-center space-x-3">
+              <button
+                  onClick={() => setShowMedicalModal(true)}
+                  className="innohassle-button-primary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+              >
+                <FileText size={16} />
+                <span className="hidden sm:inline">Medical Reference</span>
+                <span className="sm:hidden">Medical</span>
+              </button>
 
-                        {/* Desktop Layout - Full details */}
-                        <div className="hidden sm:block">
-                          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                            <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                              <div className={`flex items-center space-x-1 cursor-pointer ${
-                                activity.isPast ? 'text-inactive' : 'text-contrast'
-                              }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSportClick(activity.activity);
-                                }}
-                              >
-                                <Clock size={15} />
-                                <span className="font-medium text-xs sm:text-sm hover:text-brand-violet transition-colors">{activity.time}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users size={15} className="text-inactive" />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSportClick(activity.activity);
-                                  }}
-                                  className="text-contrast font-medium hover:text-brand-violet transition-colors cursor-pointer underline-offset-2 hover:underline text-xs sm:text-sm"
-                                >
-                                  {activity.activity}
-                                </button>
-                              </div>
-                              {activityStatus === 'booked' && (
-                                <div className="flex items-center space-x-2">
-                                  <UserCheck size={18} className="text-brand-violet" />
-                                  <span className="text-xs sm:text-sm font-medium selected">You're enrolled</span>
-                                </div>
-                              )}
-                              {activity.isPast && (
-                                <div className="flex items-center space-x-2">
-                                  <AlertCircle size={18} className="text-inactive" />
-                                  <span className="text-xs sm:text-sm text-inactive">Past event</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                              {/* Participants Counter */}
-                              <span className={`text-xs font-medium ${
-                                activity.isPast 
-                                  ? 'text-inactive' 
-                                  : 'text-contrast'
-                              }`}>
-                                {activity.currentParticipants}/{activity.maxParticipants} enrolled
-                              </span>
-                              
-                              {/* Availability Badge */}
-                              <span className={`${getParticipantsBadgeStyle(activity)} text-xs`}>
-                                {getParticipantsText(activity)}
-                              </span>
-                              
-                              {/* Action Button */}
-                              {!activity.isPast && (
-                                <div className="flex justify-end sm:justify-start">
-                                  {activityStatus === 'free' ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        canBook && handleBookActivity(activity.id);
-                                      }}
-                                      className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors h-9 ${
-                                        canBook 
-                                          ? 'innohassle-button innohassle-button-primary' 
-                                          : 'innohassle-button innohassle-button-secondary cursor-not-allowed opacity-60'
-                                      }`}
-                                      style={{ borderRadius: '0.75rem' }}
-                                      disabled={!canBook || isLoading}
-                                    >
-                                      {isFull 
-                                        ? 'Full' 
-                                        : hasReachedDailyLimit
-                                        ? 'Daily Limit'
-                                        : !activity.isRegistrationOpen 
-                                        ? 'Registration Closed'
-                                        : 'Enroll'
-                                      }
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // На десктопной версии используем обычную функцию отмены через модальное окно
-                                        setSelectedActivity(activity);
-                                        setShowCancelModal(true);
-                                      }}
-                                      className="innohassle-button innohassle-button-error px-3 sm:px-4 py-2 text-xs sm:text-sm"
-                                      disabled={isLoading}
-                                    >
-                                      Cancel
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Cancel booking modal */}
-      <CheckoutModal
-        isOpen={showCancelModal}
-        onClose={() => {
-          setShowCancelModal(false);
-          setSelectedActivity(null);
-        }}
-        onConfirm={confirmCancelBooking}
-        activityName={selectedActivity?.activity || ''}
-        time={selectedActivity?.time || ''}
-        isLoading={isLoading}
-      />
-
-      {/* Sport info modal */}
-      <SportInfoModal
-        isOpen={showSportInfoModal}
-        onClose={() => {
-          setShowSportInfoModal(false);
-          setSelectedSport('');
-        }}
-        sportName={selectedSport}
-      />
-
-      {/* Medical Reference Modal */}
-      <MedicalReferenceModal
-        isOpen={showMedicalModal}
-        onClose={() => setShowMedicalModal(false)}
-        onSuccess={(response) => {
-          // Показываем подробную информацию о загруженной справке
-          console.log('Medical reference uploaded successfully:', response);
-          const message = `Medical certificate uploaded! Reference ID: ${response.reference_id}. Hours credited: ${response.hours}. Period: ${new Date(response.start).toLocaleDateString()} - ${new Date(response.end).toLocaleDateString()}`;
-          setMedicalReferenceSuccess(message);
-          setTimeout(() => setMedicalReferenceSuccess(''), 10000);
-        }}
-      />
-
-      {/* Self-Sport Modal */}
-      <SelfSportModal
-        isOpen={showSelfSportModal}
-        onClose={() => setShowSelfSportModal(false)}
-        onSuccess={(response) => {
-          // Показываем уведомление об успешной загрузке self-sport активности
-          console.log('Self-sport activity uploaded successfully:', response);
-          const message = `Self-sport activity uploaded successfully! Your activity has been submitted for review.`;
-          setMedicalReferenceSuccess(message); // Используем то же состояние для уведомлений
-          setTimeout(() => setMedicalReferenceSuccess(''), 8000);
-        }}
-      />
-
-      {/* Activity Details Modal */}
-      {isModalOpen && selectedActivity && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          {/* Enhanced background overlay */}
-          <div className="hidden sm:block fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
-          
-          {/* Mobile background */}
-          <div className="block sm:hidden fixed inset-0 bg-pagebg" onClick={closeModal} />
-          
-          <div className="bg-pagebg max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-10 rounded-3xl shadow-2xl border-2 border-secondary/30 transform transition-all duration-300 scale-100">
-            {/* Enhanced modal content */}
-            <div className="relative overflow-hidden">
-              {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-violet/10 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
-              
-              <div className="p-6 relative">
-                {/* Modal Header */}
-                <div className="flex items-start justify-between mb-8">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
-                      <span className="text-2xl">🏃</span>
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
-                        {selectedActivity.activity}
-                      </h3>
-                      <div className="flex items-center space-x-2 text-sm text-inactive">
-                        <Clock size={16} />
-                        <span className="font-medium">{selectedActivity.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={closeModal}
-                    className="w-10 h-10 flex items-center justify-center bg-secondary/50 hover:bg-secondary/80 rounded-xl transition-all duration-200 text-inactive hover:text-contrast"
-                  >
-                    <span className="text-xl">×</span>
-                  </button>
-                </div>
-
-                {/* Activity Details */}
-                <div className="space-y-6 mb-8">
-                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-floating to-primary/30 rounded-2xl border border-secondary/50">
-                    <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
-                      <Users className="text-brand-violet" size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-inactive font-medium">Participants</p>
-                      <div className="flex items-center space-x-3 mt-1">
-                        <p className="text-lg font-bold text-contrast">
-                          {selectedActivity.currentParticipants}/{selectedActivity.maxParticipants}
-                        </p>
-                        {/* Enhanced progress bar */}
-                        <div className="flex-1 max-w-24 h-2 bg-secondary/50 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.9
-                                ? 'bg-error-500'
-                                : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.7
-                                ? 'bg-warning-500'
-                                : 'bg-success-500'
-                            }`}
-                            style={{ 
-                              width: `${Math.min((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100, 100)}%` 
-                            }}
-                          />
-                        </div>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.9
-                            ? 'bg-error-500/20 text-error-500'
-                            : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.7
-                            ? 'bg-warning-500/20 text-warning-500'
-                            : 'bg-success-500/20 text-success-500'
-                        }`}>
-                          {selectedActivity.maxParticipants - selectedActivity.currentParticipants} spots left
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Enhanced Status Information */}
-                  <div className="bg-gradient-to-r from-primary/50 to-secondary/30 rounded-2xl p-4 border border-secondary/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          isEnrolled(selectedActivity.id)
-                            ? 'bg-brand-violet'
-                            : selectedActivity.isPast
-                            ? 'bg-inactive'
-                            : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
-                            ? 'bg-error-500'
-                            : 'bg-success-500'
-                        }`}></div>
-                        <span className={`innohassle-badge ${
-                          isEnrolled(selectedActivity.id)
-                            ? 'innohassle-badge-primary'
-                            : selectedActivity.isPast
-                            ? 'bg-inactive/20 text-inactive border-inactive/30'
-                            : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
-                            ? 'innohassle-badge-error'
-                            : 'innohassle-badge-success'
-                        }`}>
-                          {isEnrolled(selectedActivity.id)
-                            ? 'You are enrolled'
-                            : selectedActivity.isPast
-                            ? 'Past event'
-                            : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
-                            ? 'Full'
-                            : 'Available'
-                          }
-                        </span>
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.8
-                          ? 'text-error-500'
-                          : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.6
-                          ? 'text-warning-500'
-                          : 'text-success-500'
-                      }`}>
-                        {selectedActivity.currentParticipants >= selectedActivity.maxParticipants
-                          ? 'Fully enrolled'
-                          : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.8
-                          ? 'Almost full'
-                          : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.6
-                          ? 'Filling up'
-                          : 'Spots available'
-                        }
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Daily limit indicator */}
-                  {!canBookOnDate(selectedActivity.date) && !isEnrolled(selectedActivity.id) && (
-                    <div className="flex items-center space-x-3 text-warning-500 p-4 bg-gradient-to-r from-warning-500/10 to-warning-500/5 rounded-2xl border border-warning-500/30">
-                      <AlertCircle size={20} />
-                      <div>
-                        <span className="text-sm font-semibold">Daily registration limit reached</span>
-                        <p className="text-xs text-warning-500/80 mt-1">
-                          You have already registered for {getBookedSessionsOnDate(selectedActivity.date)} training sessions today. Maximum 2 sessions per day.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Enrolled indicator */}
-                  {isEnrolled(selectedActivity.id) && (
-                    <div className="flex items-center space-x-3 text-brand-violet p-4 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 rounded-2xl border border-brand-violet/30">
-                      <UserCheck size={20} />
-                      <span className="text-sm font-semibold">You're enrolled in this activity</span>
-                    </div>
-                  )}
-
-                  {/* Past event indicator */}
-                  {selectedActivity.isPast && (
-                    <div className="flex items-center space-x-3 text-inactive p-4 bg-gradient-to-r from-secondary/20 to-secondary/10 rounded-2xl border border-secondary/50">
-                      <AlertCircle size={20} />
-                      <span className="text-sm font-medium">This activity has already ended</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Enhanced Action Buttons */}
-                {!selectedActivity.isPast && (
-                  <div className="flex space-x-4">
-                    {isEnrolled(selectedActivity.id) ? (
-                      <button
-                        onClick={async () => {
-                          // На мобильной версии отменяем запись напрямую без дополнительного модального окна
-                          try {
-                            setIsModalLoading(true);
-                            
-                            const activity = weekActivities.find(a => a.id === selectedActivity.id);
-                            if (!activity || !activity.trainingId) {
-                              console.error('Training not found or missing trainingId');
-                              return;
-                            }
-
-                            // Make API call to cancel check-in
-                            await studentAPI.cancelCheckIn(activity.trainingId);
-                            
-                            setWeekActivities(prev => prev.map(activity =>
-                              activity.id === selectedActivity.id
-                                ? { 
-                                    ...activity, 
-                                    status: 'free' as const,
-                                    currentParticipants: Math.max(activity.currentParticipants - 1, 0)
-                                  }
-                                : activity
-                            ));
-                            closeModal();
-                          } catch (error) {
-                            console.error('Error canceling enrollment:', error);
-                          } finally {
-                            setIsModalLoading(false);
-                          }
-                        }}
-                        className="flex-1 innohassle-button-error py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105"
-                        disabled={isLoading || isModalLoading}
-                      >
-                        {isLoading || isModalLoading ? 'Canceling...' : 'Cancel Enrollment'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          // Check daily limit before booking
-                          if (!canBookOnDate(selectedActivity.date)) {
-                            setDailyLimitError('You can only register for two training sessions per day.');
-                            setTimeout(() => setDailyLimitError(''), 5000);
-                            closeModal();
-                            return;
-                          }
-
-                          // На мобильной версии записываемся напрямую без дополнительного модального окна
-                          if (canEnrollInMoreSessions() && selectedActivity.currentParticipants < selectedActivity.maxParticipants && selectedActivity.isRegistrationOpen) {
-                            try {
-                              setIsModalLoading(true);
-                              await handleBookActivity(selectedActivity.id);
-                              closeModal();
-                            } catch (error) {
-                              console.error('Error enrolling:', error);
-                            } finally {
-                              setIsModalLoading(false);
-                            }
-                          }
-                        }}
-                        className={`flex-1 py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105 ${
-                          !canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date)
-                            ? 'bg-secondary text-inactive cursor-not-allowed'
-                            : 'innohassle-button-primary'
-                        }`}
-                        disabled={!canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date) || isLoading || isModalLoading}
-                      >
-                        {isLoading || isModalLoading
-                          ? 'Enrolling...'
-                          : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
-                          ? 'Session Full'
-                          : !selectedActivity.isRegistrationOpen
-                          ? 'Registration Closed'
-                          : !canBookOnDate(selectedActivity.date)
-                          ? 'Daily Limit Reached'
-                          : !canEnrollInMoreSessions()
-                          ? 'Max enrollments reached'
-                          : 'Enroll Now'
-                        }
-                      </button>
-                    )}
-                    <button
-                      onClick={closeModal}
-                      className="innohassle-button-secondary px-8 py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105"
-                    >
-                      Close
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                  onClick={() => setShowSelfSportModal(true)}
+                  className="innohassle-button-secondary px-4 py-2 flex items-center space-x-2 text-sm font-medium transition-all duration-300 hover:scale-105 border-2 border-blue-500/30 hover:border-blue-500/50"
+              >
+                <Activity size={16} />
+                <span className="hidden sm:inline">Self-Sport</span>
+                <span className="sm:hidden">Sport</span>
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Week Navigation */}
+        <div className="flex items-center justify-between gap-4 innohassle-card p-4 sm:p-6 bg-gradient-to-r from-floating to-primary/50 border-2 border-secondary/50 hover:border-brand-violet/30 transition-all duration-300">
+          <button
+              onClick={handlePreviousWeek}
+              className="group innohassle-button-secondary px-4 sm:px-6 py-3 flex items-center space-x-2 flex-shrink-0 hover:scale-105 transition-transform duration-200"
+          >
+            <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-200" />
+            <span className="hidden xs:inline sm:hidden font-medium">Prev</span>
+            <span className="hidden sm:inline font-medium">Previous week</span>
+          </button>
+
+          <div className="text-center flex-1 min-w-0">
+            <h3 className="text-lg sm:text-xl font-bold text-contrast truncate bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
+              {formatWeekRange(currentWeekStart)}
+            </h3>
+            <p className="text-xs sm:text-sm text-inactive mt-1 font-medium">
+              {currentWeekStart.getFullYear()}
+            </p>
+          </div>
+
+          <button
+              onClick={handleNextWeek}
+              className="group innohassle-button-secondary px-4 sm:px-6 py-3 flex items-center space-x-2 flex-shrink-0 hover:scale-105 transition-transform duration-200"
+          >
+            <span className="hidden xs:inline sm:hidden font-medium">Next</span>
+            <span className="hidden sm:inline font-medium">Next week</span>
+            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
+          </button>
+        </div>
+
+        {/* Past Days Control - only show if there are past days */}
+        {(() => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Set to start of today
+
+          const hasPastDays = daysOfWeek.some((_, index) => {
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(currentWeekStart.getDate() + index);
+            dayDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+            return dayDate < today;
+          });
+
+          if (!hasPastDays) return null;
+
+          return (
+              <div className="flex items-center justify-between innohassle-card p-4 sm:p-6 bg-gradient-to-r from-primary/30 to-secondary/20 border-2 border-secondary/50 hover:border-inactive/50 transition-all duration-300">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-inactive/20 to-inactive/10 rounded-xl flex items-center justify-center">
+                    <Clock size={20} className="text-inactive" />
+                  </div>
+                  <div>
+                    <span className="text-contrast font-semibold">Past Days</span>
+                    <p className="text-sm text-inactive">Activities that have ended</p>
+                  </div>
+                </div>
+                <button
+                    onClick={() => setPastDaysCollapsed(!pastDaysCollapsed)}
+                    className="group flex items-center space-x-2 text-brand-violet hover:text-brand-violet/80 transition-all duration-200 bg-brand-violet/10 hover:bg-brand-violet/20 px-4 py-2 rounded-xl"
+                >
+                  {pastDaysCollapsed ? (
+                      <>
+                        <ChevronDown size={18} className="group-hover:translate-y-0.5 transition-transform duration-200" />
+                        <span className="text-sm font-medium">Show Past Days</span>
+                      </>
+                  ) : (
+                      <>
+                        <ChevronUp size={18} className="group-hover:-translate-y-0.5 transition-transform duration-200" />
+                        <span className="text-sm font-medium">Hide Past Days</span>
+                      </>
+                  )}
+                </button>
+              </div>
+          );
+        })()}
+
+        {/* Weekly Schedule Grid */}
+        <div className="space-y-3">
+          {daysOfWeek.map((day, index) => {
+            const dayActivities = getActivitiesForDay(day);
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(currentWeekStart.getDate() + index);
+            dayDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of today
+            const isPastDay = dayDate < today;
+
+            // Skip rendering past days if collapsed
+            if (isPastDay && pastDaysCollapsed) {
+              return null;
+            }
+
+            return (
+                <div key={day} className="group innohassle-card overflow-hidden border-2 border-secondary/30 hover:border-brand-violet/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-violet/10 hover:-translate-y-1 transform rounded-lg">
+                  {/* Day Header */}
+                  <div className="bg-gradient-to-r from-primary/50 to-secondary/30 border-b border-secondary/50 px-2 py-2 group-hover:from-primary/70 group-hover:to-secondary/50 transition-all duration-300">
+                    {getDayHeader(day, index)}
+                  </div>
+
+                  {/* Activities */}
+                  <div className="p-2 space-y-2 bg-gradient-to-b from-floating to-primary/20">
+                    {isLoadingActivities ? (
+                        <div className="text-center py-12 text-inactive">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
+                            <div className="animate-spin w-8 h-8 border-2 border-brand-violet border-t-transparent rounded-full"></div>
+                          </div>
+                          <p className="font-medium">Loading activities...</p>
+                          <p className="text-sm mt-1 opacity-75">Please wait while we fetch the latest schedule</p>
+                        </div>
+                    ) : dayActivities.length === 0 ? (
+                        <div className="text-center py-12 text-inactive">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-secondary/30 to-secondary/20 rounded-2xl flex items-center justify-center">
+                            <Clock size={32} className="opacity-50" />
+                          </div>
+                          <p className="font-medium">No activities scheduled for this day</p>
+                          <p className="text-sm mt-1 opacity-75">Check back later for updates</p>
+                        </div>
+                    ) : (
+                        dayActivities.map((activity) => {
+                          const isFull = isActivityFull(activity);
+                          const activityStatus = getActivityStatus(activity);
+                          const hasReachedDailyLimit = !canBookOnDate(activity.date);
+                          const canBook = activityStatus === 'free' && !isFull && !activity.isPast && activity.isRegistrationOpen && !hasReachedDailyLimit;
+
+                          // Debug logging for button states
+                          console.log(`🔍 Activity ${activity.activity} at ${activity.time} on ${activity.date.toDateString()}:`, {
+                            activityStatus,
+                            isFull,
+                            isPast: activity.isPast,
+                            isRegistrationOpen: activity.isRegistrationOpen,
+                            hasReachedDailyLimit,
+                            canBook,
+                            bookedSessionsOnDate: getBookedSessionsOnDate(activity.date)
+                          });
+
+                          return (
+                              <div
+                                  key={activity.id}
+                                  className={`group/activity p-3 sm:p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
+                                      activityStatus === 'booked'
+                                          ? 'border-brand-violet bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 shadow-lg shadow-brand-violet/20 hover:shadow-brand-violet/30'
+                                          : activity.isPast
+                                              ? 'activity-past opacity-60 hover:opacity-80'
+                                              : !activity.isRegistrationOpen
+                                                  ? 'bg-gradient-to-r from-secondary/30 to-secondary/20 border-secondary/50 hover:border-secondary/70'
+                                                  : isFull || hasReachedDailyLimit
+                                                      ? 'bg-gradient-to-r from-error-500/10 to-error-500/5 border-error-500/30 hover:border-error-500/50'
+                                                      : 'bg-gradient-to-r from-floating to-primary/30 border-secondary/30 hover:border-brand-violet/50 hover:from-brand-violet/5 hover:to-brand-violet/10 hover:shadow-lg hover:shadow-brand-violet/10'
+                                  }`}
+                                  onClick={() => openActivityModal(activity)}
+                              >
+                                {/* Mobile Layout - Only time and name */}
+                                <div className="block sm:hidden">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <div className={`flex items-center space-x-1 cursor-pointer ${
+                                          activity.isPast ? 'text-inactive' : 'text-contrast'
+                                      }`}
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleSportClick(activity.activity);
+                                           }}
+                                      >
+                                        <Clock size={14} />
+                                        <span className="font-medium text-xs hover:text-brand-violet transition-colors">{activity.time}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <Users size={14} className="text-inactive" />
+                                        <span className="text-contrast font-medium text-xs">{activity.activity}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      {activityStatus === 'booked' && (
+                                          <div className="innohassle-badge innohassle-badge-primary text-xs">
+                                            ✓ Enrolled
+                                          </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Desktop Layout - Full details */}
+                                <div className="hidden sm:block">
+                                  <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:space-x-4">
+                                    <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+                                      <div className={`flex items-center space-x-1 cursor-pointer ${
+                                          activity.isPast ? 'text-inactive' : 'text-contrast'
+                                      }`}
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleSportClick(activity.activity);
+                                           }}
+                                      >
+                                        <Clock size={15} />
+                                        <span className="font-medium text-xs sm:text-sm hover:text-brand-violet transition-colors">{activity.time}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <Users size={15} className="text-inactive" />
+                                        <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleSportClick(activity.activity);
+                                            }}
+                                            className="text-contrast font-medium hover:text-brand-violet transition-colors cursor-pointer underline-offset-2 hover:underline text-xs sm:text-sm"
+                                        >
+                                          {activity.activity}
+                                        </button>
+                                      </div>
+                                      {activityStatus === 'booked' && (
+                                          <div className="flex items-center space-x-2">
+                                            <UserCheck size={18} className="text-brand-violet" />
+                                            <span className="text-xs sm:text-sm font-medium selected">You're enrolled</span>
+                                          </div>
+                                      )}
+                                      {activity.isPast && (
+                                          <div className="flex items-center space-x-2">
+                                            <AlertCircle size={18} className="text-inactive" />
+                                            <span className="text-xs sm:text-sm text-inactive">Past event</span>
+                                          </div>
+                                      )}
+                                    </div>
+
+                                    <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+                                      {/* Participants Counter */}
+                                      <span className={`text-xs font-medium ${
+                                          activity.isPast
+                                              ? 'text-inactive'
+                                              : 'text-contrast'
+                                      }`}>
+                                {activity.currentParticipants}/{activity.maxParticipants} enrolled
+                              </span>
+
+                                      {/* Availability Badge */}
+                                      <span className={`${getParticipantsBadgeStyle(activity)} text-xs`}>
+                                {getParticipantsText(activity)}
+                              </span>
+
+                                      {/* Action Button */}
+                                      {!activity.isPast && (
+                                          <div className="flex justify-end sm:justify-start">
+                                            {activityStatus === 'free' ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      canBook && handleBookActivity(activity.id);
+                                                    }}
+                                                    className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors h-9 ${
+                                                        canBook
+                                                            ? 'innohassle-button innohassle-button-primary'
+                                                            : 'innohassle-button innohassle-button-secondary cursor-not-allowed opacity-60'
+                                                    }`}
+                                                    style={{ borderRadius: '0.75rem' }}
+                                                    disabled={!canBook || isLoading}
+                                                >
+                                                  {isFull
+                                                      ? 'Full'
+                                                      : hasReachedDailyLimit
+                                                          ? 'Daily Limit'
+                                                          : !activity.isRegistrationOpen
+                                                              ? 'Registration Closed'
+                                                              : 'Enroll'
+                                                  }
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      // На десктопной версии используем обычную функцию отмены через модальное окно
+                                                      setSelectedActivity(activity);
+                                                      setShowCancelModal(true);
+                                                    }}
+                                                    className="innohassle-button innohassle-button-error px-3 sm:px-4 py-2 text-xs sm:text-sm"
+                                                    disabled={isLoading}
+                                                >
+                                                  Cancel
+                                                </button>
+                                            )}
+                                          </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+            );
+          })}
+        </div>
+
+        {/* Cancel booking modal */}
+        <CheckoutModal
+            isOpen={showCancelModal}
+            onClose={() => {
+              setShowCancelModal(false);
+              setSelectedActivity(null);
+            }}
+            onConfirm={confirmCancelBooking}
+            activityName={selectedActivity?.activity || ''}
+            time={selectedActivity?.time || ''}
+            isLoading={isLoading}
+        />
+
+        {/* Sport info modal */}
+        <SportInfoModal
+            isOpen={showSportInfoModal}
+            onClose={() => {
+              setShowSportInfoModal(false);
+              setSelectedSport('');
+            }}
+            sportName={selectedSport}
+        />
+
+        {/* Medical Reference Modal */}
+        <MedicalReferenceModal
+            isOpen={showMedicalModal}
+            onClose={() => setShowMedicalModal(false)}
+            onSuccess={(response) => {
+              // Показываем подробную информацию о загруженной справке
+              console.log('Medical reference uploaded successfully:', response);
+              const message = `Medical certificate uploaded! Reference ID: ${response.reference_id}. Hours credited: ${response.hours}. Period: ${new Date(response.start).toLocaleDateString()} - ${new Date(response.end).toLocaleDateString()}`;
+              setMedicalReferenceSuccess(message);
+              setTimeout(() => setMedicalReferenceSuccess(''), 10000);
+            }}
+        />
+
+        {/* Self-Sport Modal */}
+        <SelfSportModal
+            isOpen={showSelfSportModal}
+            onClose={() => setShowSelfSportModal(false)}
+            onSuccess={(response) => {
+              // Показываем уведомление об успешной загрузке self-sport активности
+              console.log('Self-sport activity uploaded successfully:', response);
+              const message = `Self-sport activity uploaded successfully! Your activity has been submitted for review.`;
+              setMedicalReferenceSuccess(message); // Используем то же состояние для уведомлений
+              setTimeout(() => setMedicalReferenceSuccess(''), 8000);
+            }}
+        />
+
+        {/* Activity Details Modal */}
+        {isModalOpen && selectedActivity && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+              {/* Enhanced background overlay */}
+              <div className="hidden sm:block fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
+
+              {/* Mobile background */}
+              <div className="block sm:hidden fixed inset-0 bg-pagebg" onClick={closeModal} />
+
+              <div className="bg-pagebg max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-10 rounded-3xl shadow-2xl border-2 border-secondary/30 transform transition-all duration-300 scale-100">
+                {/* Enhanced modal content */}
+                <div className="relative overflow-hidden">
+                  {/* Background decoration */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-violet/10 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
+
+                  <div className="p-6 relative">
+                    {/* Modal Header */}
+                    <div className="flex items-start justify-between mb-8">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-2xl flex items-center justify-center">
+                          <span className="text-2xl">🏃</span>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-contrast mb-2 bg-gradient-to-r from-brand-violet to-brand-violet/80 bg-clip-text text-transparent">
+                            {selectedActivity.activity}
+                          </h3>
+                          <div className="flex items-center space-x-2 text-sm text-inactive">
+                            <Clock size={16} />
+                            <span className="font-medium">{selectedActivity.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                          onClick={closeModal}
+                          className="w-10 h-10 flex items-center justify-center bg-secondary/50 hover:bg-secondary/80 rounded-xl transition-all duration-200 text-inactive hover:text-contrast"
+                      >
+                        <span className="text-xl">×</span>
+                      </button>
+                    </div>
+
+                    {/* Activity Details */}
+                    <div className="space-y-6 mb-8">
+                      <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-floating to-primary/30 rounded-2xl border border-secondary/50">
+                        <div className="w-12 h-12 bg-gradient-to-br from-brand-violet/20 to-brand-violet/10 rounded-xl flex items-center justify-center">
+                          <Users className="text-brand-violet" size={24} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-inactive font-medium">Participants</p>
+                          <div className="flex items-center space-x-3 mt-1">
+                            <p className="text-lg font-bold text-contrast">
+                              {selectedActivity.currentParticipants}/{selectedActivity.maxParticipants}
+                            </p>
+                            {/* Enhanced progress bar */}
+                            <div className="flex-1 max-w-24 h-2 bg-secondary/50 rounded-full overflow-hidden">
+                              <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                      selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.9
+                                          ? 'bg-error-500'
+                                          : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.7
+                                              ? 'bg-warning-500'
+                                              : 'bg-success-500'
+                                  }`}
+                                  style={{
+                                    width: `${Math.min((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100, 100)}%`
+                                  }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.9
+                                    ? 'bg-error-500/20 text-error-500'
+                                    : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.7
+                                        ? 'bg-warning-500/20 text-warning-500'
+                                        : 'bg-success-500/20 text-success-500'
+                            }`}>
+                          {selectedActivity.maxParticipants - selectedActivity.currentParticipants} spots left
+                        </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Enhanced Status Information */}
+                      <div className="bg-gradient-to-r from-primary/50 to-secondary/30 rounded-2xl p-4 border border-secondary/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-3 h-3 rounded-full ${
+                                isEnrolled(selectedActivity.id)
+                                    ? 'bg-brand-violet'
+                                    : selectedActivity.isPast
+                                        ? 'bg-inactive'
+                                        : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
+                                            ? 'bg-error-500'
+                                            : 'bg-success-500'
+                            }`}></div>
+                            <span className={`innohassle-badge ${
+                                isEnrolled(selectedActivity.id)
+                                    ? 'innohassle-badge-primary'
+                                    : selectedActivity.isPast
+                                        ? 'bg-inactive/20 text-inactive border-inactive/30'
+                                        : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
+                                            ? 'innohassle-badge-error'
+                                            : 'innohassle-badge-success'
+                            }`}>
+                          {isEnrolled(selectedActivity.id)
+                              ? 'You are enrolled'
+                              : selectedActivity.isPast
+                                  ? 'Past event'
+                                  : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
+                                      ? 'Full'
+                                      : 'Available'
+                          }
+                        </span>
+                          </div>
+                          <span className={`text-sm font-medium ${
+                              selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.8
+                                  ? 'text-error-500'
+                                  : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.6
+                                      ? 'text-warning-500'
+                                      : 'text-success-500'
+                          }`}>
+                        {selectedActivity.currentParticipants >= selectedActivity.maxParticipants
+                            ? 'Fully enrolled'
+                            : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.8
+                                ? 'Almost full'
+                                : selectedActivity.currentParticipants >= selectedActivity.maxParticipants * 0.6
+                                    ? 'Filling up'
+                                    : 'Spots available'
+                        }
+                      </span>
+                        </div>
+                      </div>
+
+                      {/* Daily limit indicator */}
+                      {!canBookOnDate(selectedActivity.date) && !isEnrolled(selectedActivity.id) && (
+                          <div className="flex items-center space-x-3 text-warning-500 p-4 bg-gradient-to-r from-warning-500/10 to-warning-500/5 rounded-2xl border border-warning-500/30">
+                            <AlertCircle size={20} />
+                            <div>
+                              <span className="text-sm font-semibold">Daily registration limit reached</span>
+                              <p className="text-xs text-warning-500/80 mt-1">
+                                You have already registered for {getBookedSessionsOnDate(selectedActivity.date)} training sessions today. Maximum 2 sessions per day.
+                              </p>
+                            </div>
+                          </div>
+                      )}
+
+                      {/* Enrolled indicator */}
+                      {isEnrolled(selectedActivity.id) && (
+                          <div className="flex items-center space-x-3 text-brand-violet p-4 bg-gradient-to-r from-brand-violet/10 to-brand-violet/5 rounded-2xl border border-brand-violet/30">
+                            <UserCheck size={20} />
+                            <span className="text-sm font-semibold">You're enrolled in this activity</span>
+                          </div>
+                      )}
+
+                      {/* Past event indicator */}
+                      {selectedActivity.isPast && (
+                          <div className="flex items-center space-x-3 text-inactive p-4 bg-gradient-to-r from-secondary/20 to-secondary/10 rounded-2xl border border-secondary/50">
+                            <AlertCircle size={20} />
+                            <span className="text-sm font-medium">This activity has already ended</span>
+                          </div>
+                      )}
+                    </div>
+
+                    {/* Enhanced Action Buttons */}
+                    {!selectedActivity.isPast && (
+                        <div className="flex space-x-4">
+                          {isEnrolled(selectedActivity.id) ? (
+                              <button
+                                  onClick={async () => {
+                                    // На мобильной версии отменяем запись напрямую без дополнительного модального окна
+                                    try {
+                                      setIsModalLoading(true);
+
+                                      const activity = weekActivities.find(a => a.id === selectedActivity.id);
+                                      if (!activity || !activity.trainingId) {
+                                        console.error('Training not found or missing trainingId');
+                                        return;
+                                      }
+
+                                      // Make API call to cancel check-in
+                                      await studentAPI.cancelCheckIn(activity.trainingId);
+
+                                      setWeekActivities(prev => prev.map(activity =>
+                                          activity.id === selectedActivity.id
+                                              ? {
+                                                ...activity,
+                                                status: 'free' as const,
+                                                currentParticipants: Math.max(activity.currentParticipants - 1, 0)
+                                              }
+                                              : activity
+                                      ));
+                                      closeModal();
+                                    } catch (error) {
+                                      console.error('Error canceling enrollment:', error);
+                                    } finally {
+                                      setIsModalLoading(false);
+                                    }
+                                  }}
+                                  className="flex-1 innohassle-button-error py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105"
+                                  disabled={isLoading || isModalLoading}
+                              >
+                                {isLoading || isModalLoading ? 'Canceling...' : 'Cancel Enrollment'}
+                              </button>
+                          ) : (
+                              <button
+                                  onClick={async () => {
+                                    // Check daily limit before booking
+                                    if (!canBookOnDate(selectedActivity.date)) {
+                                      setDailyLimitError('You can only register for two training sessions per day.');
+                                      setTimeout(() => setDailyLimitError(''), 5000);
+                                      closeModal();
+                                      return;
+                                    }
+
+                                    // На мобильной версии записываемся напрямую без дополнительного модального окна
+                                    if (canEnrollInMoreSessions() && selectedActivity.currentParticipants < selectedActivity.maxParticipants && selectedActivity.isRegistrationOpen) {
+                                      try {
+                                        setIsModalLoading(true);
+                                        await handleBookActivity(selectedActivity.id);
+                                        closeModal();
+                                      } catch (error) {
+                                        console.error('Error enrolling:', error);
+                                      } finally {
+                                        setIsModalLoading(false);
+                                      }
+                                    }
+                                  }}
+                                  className={`flex-1 py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105 ${
+                                      !canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date)
+                                          ? 'bg-secondary text-inactive cursor-not-allowed'
+                                          : 'innohassle-button-primary'
+                                  }`}
+                                  disabled={!canEnrollInMoreSessions() || selectedActivity.currentParticipants >= selectedActivity.maxParticipants || !selectedActivity.isRegistrationOpen || !canBookOnDate(selectedActivity.date) || isLoading || isModalLoading}
+                              >
+                                {isLoading || isModalLoading
+                                    ? 'Enrolling...'
+                                    : selectedActivity.currentParticipants >= selectedActivity.maxParticipants
+                                        ? 'Session Full'
+                                        : !selectedActivity.isRegistrationOpen
+                                            ? 'Registration Closed'
+                                            : !canBookOnDate(selectedActivity.date)
+                                                ? 'Daily Limit Reached'
+                                                : !canEnrollInMoreSessions()
+                                                    ? 'Max enrollments reached'
+                                                    : 'Enroll Now'
+                                }
+                              </button>
+                          )}
+                          <button
+                              onClick={closeModal}
+                              className="innohassle-button-secondary px-8 py-4 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105"
+                          >
+                            Close
+                          </button>
+                        </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+        )}
+      </div>
   );
 };
 

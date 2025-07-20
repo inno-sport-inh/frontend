@@ -338,12 +338,10 @@ const ClubPage: React.FC = () => {
           {/* Club Header */}
           <div className="innohassle-card overflow-hidden">
             <div className="bg-gradient-to-r from-brand-violet to-brand-violet/80 p-6 sm:p-8 text-white">
-              <div className="flex items-center space-x-4">
-                <div className="text-4xl sm:text-6xl">{emoji}</div>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold">{club.name}</h1>
-                  <p className="text-white/90 mt-2 text-sm sm:text-base">{club.description}</p>
-                </div>
+              <div className="flex flex-col items-start">
+                <div className="text-4xl sm:text-6xl mb-2">{emoji}</div>
+                <h1 className="text-2xl sm:text-3xl font-bold">{club.name}</h1>
+                <p className="text-white/90 mt-2 text-sm sm:text-base">{club.description}</p>
               </div>
             </div>
           </div>
@@ -393,18 +391,6 @@ const ClubPage: React.FC = () => {
                 <p className="text-inactive mb-4">
                   The schedule might not be published yet or all sessions for the upcoming weeks have already passed.
                 </p>
-                {club.groups.length > 0 && (
-                  <div className="text-sm text-inactive">
-                    <p>Available groups:</p>
-                    <div className="flex flex-wrap justify-center gap-2 mt-2">
-                      {club.groups.map(group => (
-                        <span key={group.id} className="bg-secondary px-2 py-1 rounded text-xs">
-                          {group.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="space-y-4">
