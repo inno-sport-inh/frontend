@@ -191,30 +191,7 @@ const ScheduleProgressHeader: React.FC<ScheduleProgressHeaderProps> = ({
                 Training hours: {Math.max(0, studentProgress.completedHours - studentProgress.selfSportHours)}
               </span>
             </div>
-            {studentProgress.selfSportHours > 0 && (
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-                <span className="text-contrast font-medium">
-                  Self-sport: {studentProgress.selfSportHours}
-                </span>
-              </div>
-            )}
-            {studentProgress.completedHours > studentProgress.totalHours && (
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"></div>
-                <span className="text-contrast font-medium">
-                  Excess: {studentProgress.completedHours - studentProgress.totalHours}
-                </span>
-              </div>
-            )}
-            {studentProgress.debt > 0 && (
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full"></div>
-                <span className="text-contrast font-medium">
-                  Debt: {studentProgress.debt}
-                </span>
-              </div>
-            )}
+
           </div>
         </div>
         {/* Progress Stats */}
