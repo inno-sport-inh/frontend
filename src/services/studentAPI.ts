@@ -197,7 +197,7 @@ export const studentAPI = {
     const semestersWithTrainings = result.filter(semester => semester.trainings && semester.trainings.length > 0);
     console.log('🔍 Filtered to semesters with trainings:', semestersWithTrainings.length, 'out of', result.length);
     
-    return semestersWithTrainings;
+    return result;
   },
 
   /**
