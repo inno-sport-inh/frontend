@@ -29,7 +29,7 @@ const ClubPage: React.FC = () => {
           setError('Club not found');
         }
       } catch (err) {
-        console.error('Error fetching club:', err);
+        // Error fetching club
         setError(err instanceof Error ? err.message : 'Failed to load club');
       } finally {
         setLoading(false);
@@ -88,7 +88,7 @@ const ClubPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Enrollment error:', error);
+      // Enrollment error
       setErrorMessage('Error during enrollment/cancellation. Please try again.');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {

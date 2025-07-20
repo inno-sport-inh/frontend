@@ -145,26 +145,26 @@ const ClubsPage: React.FC = () => {
           return (
             <div
               key={club.id}
-              className="innohassle-card flex flex-col justify-between min-h-[370px] sm:min-h-[350px] overflow-hidden hover:shadow-lg transition-shadow duration-300 relative"
+              className="innohassle-card flex flex-col justify-between h-[370px] sm:h-[350px] overflow-hidden hover:shadow-lg transition-shadow duration-300"
             >
               {/* Club Logo & Name */}
-              <div className="flex flex-col items-center py-6 bg-gradient-to-r from-brand-violet to-brand-violet/80">
+              <div className="flex flex-col items-center py-6 bg-gradient-to-b from-brand-violet/80 to-brand-violet/60">
                 <div className="text-5xl mb-2">{getClubEmoji(club.name)}</div>
+                <h3 className="text-xl font-bold text-white mb-1 text-center">{club.name}</h3>
                 {/* Collapsible Description */}
                 <div className="w-full flex flex-col items-center">
                   <button
-                    className="text-xs text-white/80 underline mb-1 focus:outline-none z-10"
+                    className="text-xs text-white/80 underline mb-1 focus:outline-none"
                     onClick={() => setDescOpen((prev) => ({ ...prev, [club.id]: !prev[club.id] }))}
                   >
                     {descOpen[club.id] ? 'Hide description' : 'Show description'}
                   </button>
                   <div
-                    className={`transition-all duration-300 text-white/90 text-sm text-center max-w-xs mx-auto px-2 ${descOpen[club.id] ? 'max-h-64 opacity-100 mb-2 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent' : 'max-h-0 opacity-0 overflow-hidden'}`}
+                    className={`transition-all duration-300 text-white/90 text-sm text-center max-w-xs mx-auto ${descOpen[club.id] ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}
                   >
                     {club.description}
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-1 text-center">{club.name}</h3>
               </div>
               {/* Upcoming Sessions */}
               <div className="flex-1 flex flex-col justify-between p-6">

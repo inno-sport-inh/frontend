@@ -17,10 +17,8 @@ export const studentService = {
     try {
       const profile = await studentAPI.getProfile();
       studentService._cachedProfile = profile;
-      console.log('📊 Student profile received:', profile);
       return profile;
     } catch (error) {
-      console.error('Error fetching student profile:', error);
       return {
         user_id: '1',
         user_statuses: ['student'],
@@ -153,7 +151,6 @@ export const studentService = {
       const studentHours = await studentAPI.getStudentHours(studentInfo.id);
       return studentHours;
     } catch (error) {
-      console.error('Error fetching student hours:', error);
       return {
         last_semesters_hours: [],
         ongoing_semester: {
@@ -179,7 +176,6 @@ export const studentService = {
       // API возвращает уже готовый процент (например 25.9)
       return result; // Ensure we return the result
     } catch (error) {
-      console.error('Error fetching student percentile:', error);
       return 0; // Return a default value in case of error
     }
   },

@@ -9,8 +9,6 @@ import SemestersHistory from '../components/history/SemestersHistory';
 const HistoryPage: React.FC = () => {
   const [fitnessTests, setFitnessTests] = useState<FitnessTestResult[]>([]);
   const [semesterHistory, setSemesterHistory] = useState<StudentSemesterHistory[]>([]);
-  // Новый стейт для объединённого списка семестров
-  const [allSemesters, setAllSemesters] = useState<StudentSemesterHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +35,7 @@ const HistoryPage: React.FC = () => {
       // Удаляем фильтрацию: отображаем все семестры, даже если trainings: []
       // setAllSemesters больше не нужен
     } catch (err) {
-      console.error('Error loading history data:', err);
+      // Error loading history data
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
@@ -52,7 +50,7 @@ const HistoryPage: React.FC = () => {
       // Use trainings from semester history data directly
       setModalTrainings(semester.trainings);
     } catch (err) {
-      console.error('Error loading semester details:', err);
+      // Error loading semester details
       setModalTrainings([]);
     } finally {
       setModalLoading(false);

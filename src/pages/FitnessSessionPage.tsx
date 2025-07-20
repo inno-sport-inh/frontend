@@ -11,11 +11,9 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
   const [selectedStudent, setSelectedStudent] = useState<FitnessTestStudentSuggestion | null>(null);
   // studentResults: { [studentId: string]: { [exerciseId: number]: string | number } }
   const [studentResults, setStudentResults] = useState<Record<string, Record<number, string | number>>>({});
-  // DEBUG: отдельная кнопка для проверки отправки результатов
+  // DEBUG: separate button for testing result submission
   const debugSubmitResults = async () => {
-    console.log('DEBUG: debugSubmitResults called');
     if (!selectedStudent) {
-      console.log('DEBUG: no selectedStudent');
       return;
     }
     const studentId = selectedStudent.value.split('_')[0];
@@ -24,26 +22,17 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
       exercise_id: Number(exercise_id),
       value: String(value)
     }));
-    console.log('DEBUG submit', {
-      studentId,
-      results,
-      sessionId: session.session.id,
-      semester_id: session.session.semester.id,
-      retake: session.session.retake
-    });
     try {
       await fitnessTestAPI.uploadResults(session.session.id, {
         semester_id: session.session.semester.id,
         retake: session.session.retake,
         results
       });
-      console.log('DEBUG: POST success');
     } catch (e) {
-      console.error('DEBUG submit error', e);
     }
   };
 
-  // Автоматически подставлять результаты выбранного студента
+  // Automatically populate results for the selected student
   React.useEffect(() => {
     if (!selectedStudent) return;
     const studentId = selectedStudent.value.split('_')[0];
@@ -73,7 +62,7 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
   const [editStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Поиск студентов при вводе
+  // Search students on input
   React.useEffect(() => {
     if (!studentQuery) {
       setStudentOptions([]);
@@ -129,13 +118,6 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
                 exercise_id: Number(exercise_id),
                 value: String(value)
               }));
-              console.log('DEBUG submit', {
-                studentId,
-                results,
-                sessionId: session.session.id,
-                semester_id: session.session.semester.id,
-                retake: session.session.retake
-              });
               await fitnessTestAPI.uploadResults(session.session.id, {
                 semester_id: session.session.semester.id,
                 retake: session.session.retake,
@@ -156,7 +138,6 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
               setSubmitStatus('success');
               setSubmitMessage('Results submitted!');
             } catch (e) {
-              console.error('DEBUG submit error', e);
               setSubmitStatus('error');
               setSubmitMessage('Failed to submit results');
             } finally {
@@ -210,7 +191,7 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
             setSubmitStatus('loading');
             setSubmitMessage('');
             try {
-              // Собрать все результаты для всех студентов
+            // Collect all results for all students
               const results: Array<{student_id: string, exercise_id: number, value: string}> = [];
               Object.entries(studentResults).forEach(([student_id, exercises]) => {
                 Object.entries(exercises).forEach(([exercise_id, value]) => {
@@ -220,12 +201,6 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
                     value: String(value)
                   });
                 });
-              });
-              console.log('POST /fitness-test/upload', {
-                sessionId: session.session.id,
-                semester_id: session.session.semester.id,
-                retake: session.session.retake,
-                results
               });
               await fitnessTestAPI.uploadResults(session.session.id, {
                 semester_id: session.session.semester.id,
@@ -244,7 +219,7 @@ const FitnessSessionPage: React.FC<{ session: FitnessTestSessionDetails }> = ({ 
         >
           Submit results
         </button>
-        {/* DEBUG: отдельная кнопка для проверки отправки POST */}
+        {/* DEBUG: separate button for testing POST submission */}
         <button
           className="innohassle-button px-4 py-1 rounded text-xs bg-red-200 ml-4"
           onClick={debugSubmitResults}

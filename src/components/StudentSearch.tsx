@@ -14,7 +14,6 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
   setStudentQuery,
   studentOptions,
   studentSearchLoading,
-  selectedStudent,
   setSelectedStudent,
 }) => (
   <div className="mb-6">
@@ -31,7 +30,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
       autoComplete="off"
     />
     {studentSearchLoading && <div className="text-xs text-inactive">Searching...</div>}
-    {studentOptions.length > 0 && !selectedStudent && (
+    {studentOptions.length > 0 && studentQuery.length > 0 && (
       <ul className="border-2 border-secondary/50 rounded-lg bg-white dark:bg-neutral-900 shadow max-h-40 overflow-y-auto z-10 relative">
         {studentOptions.map(option => (
           <li
@@ -39,7 +38,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
             className="px-4 py-2 hover:bg-brand-violet/10 cursor-pointer text-contrast dark:text-white"
             onClick={() => {
               setSelectedStudent(option);
-              setStudentQuery(option.label);
+              setStudentQuery(''); // очищаем input после выбора
             }}
           >
             {option.label}
@@ -49,5 +48,4 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
     )}
   </div>
 );
-
 export default StudentSearch;

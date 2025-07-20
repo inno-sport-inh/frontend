@@ -4,6 +4,7 @@ import { useAppStore } from '../store/useAppStore';
 import CheckoutModal from '../components/CheckoutModal';
 import { MedicalReferenceModal } from '../components/MedicalReferenceModal';
 import { SelfSportModal } from '../components/SelfSportModal';
+import AttendanceMarkModal from '../components/AttendanceMarkModal';
 import { generateSessionId } from '../utils/sessionUtils';
 import { studentAPI } from '../services/studentAPI';
 import { studentService } from '../services/studentService';
@@ -26,6 +27,7 @@ type ScheduleActivity = {
   isRegistrationOpen: boolean;
   groupId: number;
   trainingId: number;
+  canGrade?: boolean;
 };
 
 // Utility functions for date handling
@@ -62,10 +64,10 @@ const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity
       const isRegistrationOpen = now >= registrationOpenTime;
       // Generate consistent session ID
       const sessionId = generateSessionId(
-          training.group_name,
-          startTime.toLocaleDateString('en-US', { weekday: 'long' }),
-          `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
-          startTime
+        training.group_name,
+        startTime.toLocaleDateString('en-US', { weekday: 'long' }),
+        `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+        startTime
       );
       return {
         id: sessionId,
@@ -79,11 +81,12 @@ const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity
         isPast: isPastActivity,
         isRegistrationOpen: isRegistrationOpen && training.can_check_in,
         groupId: training.group_id,
-        trainingId: training.id
+        trainingId: training.id,
+        canGrade: training.can_grade,
       };
     });
   } catch (error) {
-    console.error('Error fetching weekly schedule:', error);
+    // Error fetching weekly schedule
     return []; // Return empty array on error
   }
 };
@@ -91,6 +94,15 @@ const generateWeekActivities = async (weekStart: Date): Promise<ScheduleActivity
 const SchedulePage: React.FC = () => {
   const { isLoading, canEnrollInMoreSessions } = useAppStore();
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  // Attendance modal state
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [attendanceModalData, setAttendanceModalData] = useState<{
+    trainingId: number;
+    groupId?: number;
+    groupName?: string;
+    start?: string;
+    end?: string;
+  } | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showMedicalModal, setShowMedicalModal] = useState(false);
   const [dailyLimitError, setDailyLimitError] = useState<string>('');
@@ -112,22 +124,6 @@ const SchedulePage: React.FC = () => {
       const isSameDate = activityDateString === targetDateString;
       return isSameDate && isBooked;
     });
-
-    console.log(`🔍 Counting booked sessions for ${targetDateString}:`, {
-      targetDate: targetDateString,
-      allActivitiesForDate: weekActivities.filter(a => a.date.toDateString() === targetDateString).map(a => ({
-        activity: a.activity,
-        time: a.time,
-        status: a.status
-      })),
-      bookedActivitiesCount: bookedActivities.length,
-      bookedActivities: bookedActivities.map(a => ({
-        activity: a.activity,
-        time: a.time,
-        status: a.status
-      }))
-    });
-
     return bookedActivities.length;
   };
 
@@ -135,14 +131,6 @@ const SchedulePage: React.FC = () => {
   const canBookOnDate = (targetDate: Date) => {
     const bookedCount = getBookedSessionsOnDate(targetDate);
     const canBook = bookedCount < 2;
-
-    console.log(`🤔 Can book on ${targetDate.toDateString()}?`, {
-      bookedCount,
-      limit: 2,
-      canBook,
-      targetDate: targetDate.toDateString()
-    });
-
     return canBook;
   };
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -193,7 +181,7 @@ const SchedulePage: React.FC = () => {
         setStudentProfile(profile);
 
       } catch (error) {
-        console.error('Error loading student data:', error);
+        // Error loading student data
       }
     };
 
@@ -208,7 +196,7 @@ const SchedulePage: React.FC = () => {
         const newActivities = await generateWeekActivities(currentWeekStart);
         setWeekActivities(newActivities);
       } catch (error) {
-        console.error('Error loading activities:', error);
+        // Error loading activities
       } finally {
         setIsLoadingActivities(false);
       }
@@ -248,20 +236,12 @@ const SchedulePage: React.FC = () => {
   const handlePreviousWeek = () => {
     const newWeekStart = new Date(currentWeekStart);
     newWeekStart.setDate(currentWeekStart.getDate() - 7);
-    console.log('⬅️ Navigating to previous week:', {
-      from: currentWeekStart.toLocaleDateString(),
-      to: newWeekStart.toLocaleDateString()
-    });
     setCurrentWeekStart(newWeekStart);
   };
 
   const handleNextWeek = () => {
     const newWeekStart = new Date(currentWeekStart);
     newWeekStart.setDate(currentWeekStart.getDate() + 7);
-    console.log('➡️ Navigating to next week:', {
-      from: currentWeekStart.toLocaleDateString(),
-      to: newWeekStart.toLocaleDateString()
-    });
     setCurrentWeekStart(newWeekStart);
   };
 
@@ -269,22 +249,13 @@ const SchedulePage: React.FC = () => {
     try {
       const activity = weekActivities.find(a => a.id === activityId);
       if (!activity || !activity.trainingId) {
-        console.error('Training not found or missing trainingId');
+        // Training not found or missing trainingId
         return;
       }
 
       // Check daily limit before booking
-      const bookedCount = getBookedSessionsOnDate(activity.date);
-      console.log(`📅 Daily limit check for ${activity.activity} on ${activity.date.toDateString()}:`, {
-        currentBookedCount: bookedCount,
-        limit: 2,
-        canBook: bookedCount < 2,
-        activityDate: activity.date.toDateString(),
-        activityTime: activity.time
-      });
-
       if (!canBookOnDate(activity.date)) {
-        console.log('❌ Daily limit reached, showing error message');
+        // Daily limit reached, showing error message
         setDailyLimitError('You can only register for two training sessions per day.');
         // Clear error after 5 seconds
         setTimeout(() => setDailyLimitError(''), 5000);
@@ -294,23 +265,21 @@ const SchedulePage: React.FC = () => {
       // Clear any existing error
       setDailyLimitError('');
 
-      console.log('✅ Daily limit check passed, proceeding with booking');
-
       // Make API call to check in
       await studentAPI.checkIn(activity.trainingId);
 
       // Update local state to reflect the change
       setWeekActivities(prev => prev.map(activity =>
-          activity.id === activityId
-              ? {
-                ...activity,
-                status: 'booked' as const,
-                currentParticipants: activity.currentParticipants + 1
-              }
-              : activity
+        activity.id === activityId
+          ? {
+              ...activity,
+              status: 'booked' as const,
+              currentParticipants: activity.currentParticipants + 1
+            }
+          : activity
       ));
     } catch (error) {
-      console.error('Error enrolling in session:', error);
+      // Error enrolling in session
     }
   };
 
@@ -321,7 +290,7 @@ const SchedulePage: React.FC = () => {
 
         const activity = weekActivities.find(a => a.id === selectedActivity.id);
         if (!activity || !activity.trainingId) {
-          console.error('Training not found or missing trainingId');
+          // Training not found or missing trainingId
           return;
         }
 
@@ -341,7 +310,7 @@ const SchedulePage: React.FC = () => {
         setShowCancelModal(false);
         setSelectedActivity(null);
       } catch (error) {
-        console.error('Error canceling enrollment:', error);
+        // Error canceling enrollment
       } finally {
         setIsModalLoading(false);
       }
@@ -438,6 +407,17 @@ const SchedulePage: React.FC = () => {
   };
 
   const openActivityModal = (activity: any) => {
+    if (activity.canGrade) {
+      setAttendanceModalData({
+        trainingId: activity.trainingId,
+        groupId: activity.groupId,
+        groupName: activity.activity,
+        start: activity.date?.toISOString?.() || '',
+        end: '', // Можно добавить end если нужно
+      });
+      setAttendanceModalOpen(true);
+      return;
+    }
     setSelectedActivity(activity);
     setIsModalOpen(true);
   };
@@ -664,16 +644,10 @@ const SchedulePage: React.FC = () => {
                           const hasReachedDailyLimit = !canBookOnDate(activity.date);
                           const canBook = activityStatus === 'free' && !isFull && !activity.isPast && activity.isRegistrationOpen && !hasReachedDailyLimit;
 
-                          // Debug logging for button states
-                          console.log(`🔍 Activity ${activity.activity} at ${activity.time} on ${activity.date.toDateString()}:`, {
-                            activityStatus,
-                            isFull,
-                            isPast: activity.isPast,
-                            isRegistrationOpen: activity.isRegistrationOpen,
-                            hasReachedDailyLimit,
-                            canBook,
-                            bookedSessionsOnDate: getBookedSessionsOnDate(activity.date)
-                          });
+                          // ...existing code...
+
+                          // Highlight if canGrade is true
+                          const canGradeHighlight = activity.canGrade ? 'ring-4 ring-yellow-400/60 ring-offset-2' : '';
 
                           return (
                               <div
@@ -688,7 +662,7 @@ const SchedulePage: React.FC = () => {
                                                   : isFull || hasReachedDailyLimit
                                                       ? 'bg-gradient-to-r from-error-500/10 to-error-500/5 border-error-500/30 hover:border-error-500/50'
                                                       : 'bg-gradient-to-r from-floating to-primary/30 border-secondary/30 hover:border-brand-violet/50 hover:from-brand-violet/5 hover:to-brand-violet/10 hover:shadow-lg hover:shadow-brand-violet/10'
-                                  }`}
+                                  } ${canGradeHighlight}`}
                                   onClick={() => openActivityModal(activity)}
                               >
                                 {/* Mobile Layout - Only time and name */}
@@ -833,16 +807,27 @@ const SchedulePage: React.FC = () => {
             isLoading={isLoading}
         />
 
+        {/* Attendance Mark Modal */}
+        <AttendanceMarkModal
+          isOpen={attendanceModalOpen}
+          onClose={() => {
+            setAttendanceModalOpen(false);
+            setAttendanceModalData(null);
+          }}
+          trainingId={attendanceModalData?.trainingId || 0}
+          groupId={attendanceModalData?.groupId}
+          groupName={attendanceModalData?.groupName}
+          start={attendanceModalData?.start}
+        />
+
 
         {/* Medical Reference Modal */}
         <MedicalReferenceModal
             isOpen={showMedicalModal}
             onClose={() => setShowMedicalModal(false)}
-            onSuccess={(response) => {
-              // Показываем подробную информацию о загруженной справке
-              console.log('Medical reference uploaded successfully:', response);
-              const message = `Medical certificate uploaded! Reference ID: ${response.reference_id}. Hours credited: ${response.hours}. Period: ${new Date(response.start).toLocaleDateString()} - ${new Date(response.end).toLocaleDateString()}`;
-              setMedicalReferenceSuccess(message);
+            onSuccess={() => {
+              // Medical reference uploaded successfully
+              setMedicalReferenceSuccess('Medical certificate uploaded!');
               setTimeout(() => setMedicalReferenceSuccess(''), 10000);
             }}
         />
@@ -851,11 +836,9 @@ const SchedulePage: React.FC = () => {
         <SelfSportModal
             isOpen={showSelfSportModal}
             onClose={() => setShowSelfSportModal(false)}
-            onSuccess={(response) => {
-              // Показываем уведомление об успешной загрузке self-sport активности
-              console.log('Self-sport activity uploaded successfully:', response);
-              const message = `Self-sport activity uploaded successfully! Your activity has been submitted for review.`;
-              setMedicalReferenceSuccess(message); // Используем то же состояние для уведомлений
+            onSuccess={() => {
+              // Self-sport activity uploaded successfully
+              setMedicalReferenceSuccess('Self-sport activity uploaded successfully! Your activity has been submitted for review.');
               setTimeout(() => setMedicalReferenceSuccess(''), 8000);
             }}
         />
@@ -1033,7 +1016,7 @@ const SchedulePage: React.FC = () => {
 
                                       const activity = weekActivities.find(a => a.id === selectedActivity.id);
                                       if (!activity || !activity.trainingId) {
-                                        console.error('Training not found or missing trainingId');
+                                        // Training not found or missing trainingId
                                         return;
                                       }
 
@@ -1051,7 +1034,7 @@ const SchedulePage: React.FC = () => {
                                       ));
                                       closeModal();
                                     } catch (error) {
-                                      console.error('Error canceling enrollment:', error);
+                                      // Error canceling enrollment
                                     } finally {
                                       setIsModalLoading(false);
                                     }
@@ -1079,7 +1062,7 @@ const SchedulePage: React.FC = () => {
                                         await handleBookActivity(selectedActivity.id);
                                         closeModal();
                                       } catch (error) {
-                                        console.error('Error enrolling:', error);
+                                        // Error enrolling
                                       } finally {
                                         setIsModalLoading(false);
                                       }

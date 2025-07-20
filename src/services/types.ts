@@ -145,6 +145,15 @@ export interface StudentSuggestion {
   label: string;
 }
 
+export interface StudentSearchResponse {
+  students: Array<{
+    student_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  }>;
+}
+
 export interface EnrollmentRequest {
   group_id: number;
 }
